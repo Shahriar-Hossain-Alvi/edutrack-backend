@@ -8,6 +8,8 @@
 7. subject_offerings = id, subject_id, department_id
 
 
+- same subject can be taught by different teachers in different departments, but each subject can only be taught by one teacher in one department, so I think I should store taught_by in subject_offerings table
+
 ## Relationships
 Department → Students                       | 1:N  | Each department has many students           
 Department ↔ Subject (via subject_offerings)| M:N  | Subjects can belong to multiple departments 
