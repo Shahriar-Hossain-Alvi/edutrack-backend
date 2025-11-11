@@ -10,8 +10,6 @@ async def create_user(
         user_data: UserCreateSchema # validate user data from request
     ):
 
-    print("user_data before stmt", user_data)
-    print("user_data type before stmt", type(user_data))
     # check for existing user
     statement = select(User).where(User.username == user_data.username)
 
@@ -30,11 +28,16 @@ async def create_user(
         hashed_password=hashed_pwd) 
     
 
-    print("new_user after db model", new_user)
-    print("new_user type after db model", type(new_user))
-
     db.add(new_user) # add the new_user to db(session)
     await db.commit() # commit the changes(adds to database)
     await db.refresh(new_user) # refresh the object(get the new data)
     
     return new_user
+
+
+
+async def get_users(db: AsyncSession):
+    statement = select(User)
+    result = await db.execute(statement)
+
+    return result.scalars().all()

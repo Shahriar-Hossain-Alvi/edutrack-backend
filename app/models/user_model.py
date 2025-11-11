@@ -38,7 +38,8 @@ class User(Base):
             name="userrole",
             values_callable=lambda x: [e.value for e in x] # <-- This ensures the value ('admin') is used
             ), 
-        nullable=False
+        nullable=False,
+        default=UserRole.STUDENT
     )
 
 

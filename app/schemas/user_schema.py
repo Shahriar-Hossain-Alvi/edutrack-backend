@@ -3,10 +3,10 @@ from app.models import UserRole
 
 
 class UserCreateSchema(BaseModel):
-    username: EmailStr
-    email: EmailStr
-    password: str
-    role: UserRole
+    username: EmailStr = "student1@gmail.com"
+    email: EmailStr = "student1@gmail.com"
+    password: str = "123456"
+    role: UserRole = UserRole.STUDENT
 
 
 class UserOutSchema(BaseModel):
