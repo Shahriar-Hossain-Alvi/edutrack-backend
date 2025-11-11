@@ -5,4 +5,4 @@ class Base(DeclarativeBase):
     pass
 
 # import models here so that alembic can find them
-from app.models import Department, Semester, Subject, Student, Mark, User, SubjectOfferings
+# from app.models import Department, Semester, Subject, Student, Mark, User, SubjectOfferings

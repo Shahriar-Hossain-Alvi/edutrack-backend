@@ -1,6 +1,6 @@
 from app.db.base import Base
 from sqlalchemy.orm import mapped_column, Mapped, relationship
-from sqlalchemy import Integer, String, Boolean, DateTime, func, Enum
+from sqlalchemy import Integer, String, Boolean
 from pydantic import EmailStr
 import enum
 from sqlalchemy import Enum as sqlEnum
@@ -32,7 +32,14 @@ class User(Base):
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False)
+    role: Mapped[UserRole] = mapped_column(
+        sqlEnum(
+            UserRole,
+            name="userrole",
+            values_callable=lambda x: [e.value for e in x] # <-- This ensures the value ('admin') is used
+            ), 
+        nullable=False
+    )
 
 
     # relationship with student

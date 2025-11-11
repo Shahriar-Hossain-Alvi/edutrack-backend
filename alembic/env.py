@@ -5,6 +5,13 @@ from sqlalchemy import pool
 import os
 from alembic import context
 from dotenv import load_dotenv
+from app.models import Department, Semester, Subject, Student, Mark, User, SubjectOfferings
+
+
+# import models here so that alembic can find them
+# from app.models import Department, Semester, Subject, Student, Mark, User, SubjectOfferings
+
+
 
 # Load .env variables
 load_dotenv()

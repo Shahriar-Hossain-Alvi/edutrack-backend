@@ -16,4 +16,4 @@ class Department(Base):
     students: Mapped[list["Student"]] = relationship( back_populates="department") #type: ignore 
 
     # many subjects can belong to many department
-    subject_offerings: Mapped[list["SubjectOfferings"]] = relationship("SubjectOffering", back_populates="department") #type: ignore 
+    subject_offerings: Mapped[list["SubjectOfferings"]] = relationship("SubjectOfferings", back_populates="department") #type: ignore 
