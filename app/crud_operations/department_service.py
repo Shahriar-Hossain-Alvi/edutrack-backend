@@ -63,3 +63,20 @@ async def update_department(
     await db.refresh(department)
 
     return department
+
+async def delete_department(
+    db: AsyncSession,
+    department_id: int
+    ):
+    
+    statement = select(Department).where(Department.id == department_id)
+    result = await db.execute(statement)
+    department = result.scalar_one_or_none()
+    
+    if not department:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Department not found")
+    
+    await db.delete(department)
+    await db.commit()
+
+    return {"message": f"{department.department_name} department deleted successfully"}
