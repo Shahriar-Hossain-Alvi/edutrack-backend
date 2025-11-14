@@ -2,7 +2,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models import Department
-from app.schemas.department_schema import  DepartmentCreateSchema, DepartmentOutSchema
+from app.schemas.department_schema import  DepartmentCreateSchema, DepartmentOutSchema, DepartmentUpdateSchema
 
 
 async def create_department(
@@ -34,3 +34,32 @@ async def get_departments(db: AsyncSession):
     result = await db.execute(statement)
 
     return result.scalars().all()
+
+
+async def get_department(db: AsyncSession, department_id: int):
+    statement = select(Department).where(Department.id == department_id)
+    result = await db.execute(statement)
+
+    return result.scalar_one_or_none()
+
+
+async def update_department(
+    db: AsyncSession, 
+    department_id: int,
+    department_data: DepartmentUpdateSchema
+    ):
+    statement = select(Department).where(Department.id == department_id)
+    result = await db.execute(statement)
+    department = result.scalar_one_or_none()
+    
+    if not department:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Department not found")
+
+    lowercase_department_name = department_data.department_name.lower().strip()
+
+    department.department_name = lowercase_department_name
+
+    await db.commit()
+    await db.refresh(department)
+
+    return department

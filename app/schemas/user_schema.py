@@ -2,18 +2,18 @@ from pydantic import BaseModel, ConfigDict, EmailStr
 from app.models import UserRole
 
 
-class UserCreateSchema(BaseModel):
+class UserBaseSchema(BaseModel):
     username: EmailStr = "student1@gmail.com"
     email: EmailStr = "student1@gmail.com"
-    password: str = "123456"
     role: UserRole = UserRole.STUDENT
 
 
-class UserOutSchema(BaseModel):
+class UserCreateSchema(UserBaseSchema):
+    password: str = "123456"
+
+
+class UserOutSchema(UserBaseSchema):
     id: int
-    username: EmailStr
-    email: EmailStr
-    role: UserRole
 
     model_config = ConfigDict(from_attributes=True)
     # this is required for response models. 

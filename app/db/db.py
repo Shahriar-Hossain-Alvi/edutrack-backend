@@ -1,13 +1,28 @@
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from app.core import settings
 
 
 # create engine and database session
-engine = create_async_engine(settings.DATABASE_URL, echo=True)
+engine = create_async_engine(
+    settings.DATABASE_URL, 
+    echo=True, # print sql queries
+    future=True, # enables sqlalchemy 2.0
+)
 
-AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
+AsyncSessionLocal = async_sessionmaker(
+    engine, 
+    expire_on_commit=False,
+    # autoflush=False # pending changes are not sent to db (default True), why do we need this?
+    autocommit=False # doesn't commit to db without calling session.commit()/db.commit() , default False
+    )
 
-# depndency for db session
+# dependency for db session
 async def get_db_session():
     async with AsyncSessionLocal() as session:
-        yield session
+        try:
+            yield session
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
