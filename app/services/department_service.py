@@ -4,6 +4,7 @@ from sqlalchemy import select
 from app.models import Department
 from app.schemas.department_schema import  DepartmentCreateSchema, DepartmentOutSchema, DepartmentUpdateSchema
 
+# TODO: create Department Service class
 
 async def create_department(
         db: AsyncSession, 

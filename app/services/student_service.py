@@ -7,6 +7,9 @@ from app.models.user_model import User
 from app.schemas.student_schema import StudentCreateSchema, StudentUpdateSchema
 from fastapi import HTTPException, status
 
+
+# TODO: create Student Service class
+
 async def create_student(
         db: AsyncSession,
         student_data: StudentCreateSchema

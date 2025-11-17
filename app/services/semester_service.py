@@ -4,6 +4,8 @@ from app.models import Semester
 from app.schemas.semester_schema import SemesterCreateSchema, SemesterUpdateSchema
 from sqlalchemy import select, or_
 
+# TODO: create Semester Service class
+
 async def create_semester(
     db: AsyncSession,
     semester_data: SemesterCreateSchema

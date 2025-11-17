@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.core.authenticated_user import get_current_user
-from app.crud_operations.department_service import create_department, delete_department, get_department, get_departments, update_department
+from app.services.department_service import create_department, delete_department, get_department, get_departments, update_department
 from app.models.user_model import UserRole
 from app.schemas.department_schema import DepartmentCreateSchema, DepartmentOutSchema, DepartmentUpdateSchema
 from sqlalchemy.ext.asyncio import AsyncSession

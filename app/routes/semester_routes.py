@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.authenticated_user import get_current_user
-from app.crud_operations.semester_service import create_semester, delete_semester, get_semester, get_semesters, update_semester
+from app.services.semester_service import create_semester, delete_semester, get_semester, get_semesters, update_semester
 from app.db.db import get_db_session
 from app.schemas.semester_schema import SemesterCreateSchema, SemesterOutSchema, SemesterUpdateSchema
 from app.schemas.user_schema import UserOutSchema

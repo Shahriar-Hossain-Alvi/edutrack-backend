@@ -9,7 +9,6 @@ class Department(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
 
-    # TODO: all department names must be unique and lowercased department_name = department_name.strip().lower()
     department_name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True) 
 
     # Relationships

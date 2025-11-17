@@ -5,6 +5,9 @@ from app.models import User
 from app.schemas.user_schema import UserCreateSchema
 from app.core import hash_password
 
+
+# TODO: create User Service class
+
 async def create_user(
         db: AsyncSession, # db session will be passed from router file
         user_data: UserCreateSchema # validate user data from request
