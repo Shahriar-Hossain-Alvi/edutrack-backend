@@ -1,9 +1,12 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select 
+from app.core.authenticated_user import get_current_user
 from app.db.db import get_db_session
 from app.models import User
-from app.schemas.user_schema import UserCreateSchema
+from app.schemas.user_schema import UserCreateSchema, UserOutSchema, UserUpdateSchemaByAdmin, UserUpdateSchemaByUser
 from app.core import hash_password
+from fastapi import HTTPException, status
+
 
 
 class UserService:
@@ -45,3 +48,74 @@ class UserService:
         result = await db.execute(statement)
 
         return result.scalars().all()
+
+
+    @staticmethod
+    async def get_user(db: AsyncSession, user_id: int):
+        result = await db.scalar(select(User).where(User.id == user_id))
+
+        if not result:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        return result
+    
+
+    @staticmethod
+    async def update_user_by_admin(db: AsyncSession, user_id: int, user_update_data_by_admin: UserUpdateSchemaByAdmin):
+        user = await db.scalar(select(User).where(User.id == user_id))
+
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        
+        updated_user_data = user_update_data_by_admin.model_dump(exclude_unset=True)
+
+        for key, value in updated_user_data.items():
+            setattr(user, key, value)
+
+        await db.commit()
+        await db.refresh(user)
+
+        return user
+   
+   
+    @staticmethod
+    async def update_user_self(
+        db: AsyncSession, 
+        user_id: int, 
+        updated_password: UserUpdateSchemaByUser,
+        current_user: UserOutSchema
+        ):
+        user = await db.scalar(select(User).where(User.id == user_id))
+
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        
+
+        if user.id != current_user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to update this user")
+        
+        updated_hashed_password = hash_password(updated_password.password)
+
+        user.hashed_password = updated_hashed_password
+
+        await db.commit()
+        await db.refresh(user)
+
+        return user
+
+    
+
+
+    @staticmethod
+    async def delete_user(db: AsyncSession, user_id: int): 
+        user = await db.scalar(select(User).where(User.id == user_id))
+
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        
+        await db.delete(user)
+        await db.commit()
+    
+        return {
+            "message": f"User: {user.username}, role: {user.role} deleted successfully"
+        }

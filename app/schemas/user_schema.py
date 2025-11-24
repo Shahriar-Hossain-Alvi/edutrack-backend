@@ -6,10 +6,21 @@ class UserBaseSchema(BaseModel):
     username: EmailStr = "student1@gmail.com"
     email: EmailStr = "student1@gmail.com"
     role: UserRole = UserRole.STUDENT
+    is_active: bool = True
 
 
 class UserCreateSchema(UserBaseSchema):
     password: str = "123456"
+
+
+class UserUpdateSchemaByAdmin(BaseModel):
+    role: UserRole | None = None
+    email: EmailStr | None = None
+    username: EmailStr | None = None
+    is_active: bool | None = None
+
+class UserUpdateSchemaByUser(BaseModel):
+    password: str
 
 
 class UserOutSchema(UserBaseSchema):
