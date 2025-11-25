@@ -1,5 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.user_schema import UserOutSchema
+
 class StudentBaseSchema(BaseModel):
     name: str
     registration: str
@@ -15,6 +17,12 @@ class StudentCreateSchema(StudentBaseSchema):
 
 class StudentOutSchema(StudentBaseSchema):
     id: int
+    model_config = ConfigDict(from_attributes=True)
+    
+    
+class StudentResponseSchemaNested(StudentBaseSchema):
+    id: int
+    user: UserOutSchema
     model_config = ConfigDict(from_attributes=True)
 
 

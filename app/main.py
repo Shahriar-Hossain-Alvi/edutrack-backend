@@ -10,9 +10,10 @@ app = FastAPI()
 # add the routes
 app.include_router(login.router, prefix="/api")
 app.include_router(user_routes.router, prefix="/api")
+app.include_router(student_routes.router, prefix="/api")
+
 app.include_router(department_routes.router, prefix="/api")
 app.include_router(semester_routes.router, prefix="/api")
-app.include_router(student_routes.router, prefix="/api")
 app.include_router(subject_routes.router, prefix="/api")
 app.include_router(subject_offering_route.router, prefix="/api")
 
