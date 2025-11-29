@@ -1,3 +1,15 @@
+## AFTER CLONING RUN THIS PROJECT with the following command
+```
+docker compose build
+docker compose up
+or
+docker compose up -d
+
+```
+- Backend Starts at: http://localhost:8000
+- Swagger UI Starts at: http://localhost:8000/docs
+- DB persists at: postgres_data
+
 ## Start Virtual Environmnt
 ```
 # for windows

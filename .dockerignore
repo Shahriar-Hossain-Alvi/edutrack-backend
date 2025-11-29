@@ -1,0 +1,11 @@
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+alembic/versions/*.pyc
+.env
+.git
+.idea
+.vscode
+*.db

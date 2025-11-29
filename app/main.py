@@ -19,5 +19,4 @@ app.include_router(subject_routes.router, prefix="/api")
 app.include_router(subject_offering_route.router, prefix="/api")
 
 if __name__ == "__main__":
-    # asyncio.run(init_db())
     uvicorn.run(app, host="0.0.0.0", port=8000)
