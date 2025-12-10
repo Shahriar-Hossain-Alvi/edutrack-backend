@@ -6,14 +6,15 @@ from app.routes import department_routes, login, mark_routes, semester_routes, s
 
 app = FastAPI()
 
+# TODO: add admin creation at startup
 
 # add the routes
 app.include_router(login.router, prefix="/api")
 app.include_router(user_routes.router, prefix="/api")
 app.include_router(student_routes.router, prefix="/api")
 
-app.include_router(semester_routes.router, prefix="/api")
 app.include_router(department_routes.router, prefix="/api")
+app.include_router(semester_routes.router, prefix="/api")
 app.include_router(subject_routes.router, prefix="/api")
 app.include_router(subject_offering_route.router, prefix="/api")
 app.include_router(mark_routes.router, prefix="/api")

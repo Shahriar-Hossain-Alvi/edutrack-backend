@@ -5,6 +5,7 @@ from app.permissions.role_checks import ensure_admin
 from app.services.user_service import UserService
 from app.db.db import get_db_session
 from app.schemas.user_schema import UserCreateSchema, UserOutSchema, UserUpdateSchemaByAdmin, UserUpdateSchemaByUser
+from app.utils import inject_token
 
 
 router = APIRouter(
@@ -28,7 +29,9 @@ async def register_user(user_data: UserCreateSchema, db: AsyncSession = Depends(
 
 # get logged in user
 @router.get("/me", response_model=UserOutSchema)
-async def get_logged_in_user(current_user: UserOutSchema = Depends(get_current_user)):
+async def get_logged_in_user(
+    token_injection: None = Depends(inject_token),
+    current_user: UserOutSchema = Depends(get_current_user)):
     return current_user
 
 
