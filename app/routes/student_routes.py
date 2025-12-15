@@ -6,6 +6,7 @@ from app.db.db import get_db_session
 from app.permissions.role_checks import ensure_admin_or_teacher, ensure_admin
 from app.schemas.student_schema import StudentCreateSchema, StudentOutSchema, StudentResponseSchemaNested, StudentUpdateSchema
 from app.schemas.user_schema import UserOutSchema
+from app.utils.token_injector import inject_token
 
 router = APIRouter(
     prefix="/students",
@@ -13,12 +14,14 @@ router = APIRouter(
 )
 
 
-# TODO: add token_injection in secured routes
+# TODO: add token_injection in secured routes and permissions
 
 # create student record
-@router.post("/", dependencies=[Depends(ensure_admin)])
+@router.post("/")
 async def create_student_record(
         student_data: StudentCreateSchema,
+        token_injection: None = Depends(inject_token),
+        check_permissions: UserOutSchema = Depends(ensure_admin),
         db: AsyncSession = Depends(get_db_session),
 ):
 
@@ -32,10 +35,11 @@ async def create_student_record(
 # get all students
 @router.get(
     "/",
-    response_model=list[StudentOutSchema],
-    dependencies=[Depends(ensure_admin_or_teacher)]
+    response_model=list[StudentOutSchema]
 )
 async def get_all_students(
+    token_injection: None = Depends(inject_token),
+    check_permissions: UserOutSchema = Depends(ensure_admin_or_teacher),
     db: AsyncSession = Depends(get_db_session),
 ):
 
@@ -51,6 +55,7 @@ async def get_all_students(
 async def get_single_student(
     id: int,
     db: AsyncSession = Depends(get_db_session),
+    token_injection: None = Depends(inject_token),
     current_user: UserOutSchema = Depends(get_current_user),
 ):
     try:
@@ -61,13 +66,12 @@ async def get_single_student(
 
 
 # update a student
-@router.patch("/{id}",
-    response_model=StudentOutSchema,
-    dependencies=[Depends(ensure_admin)]
-)
+@router.patch("/{id}", response_model=StudentOutSchema)
 async def update_single_student(
     id: int,
     student_data: StudentUpdateSchema,
+    token_injection: None = Depends(inject_token),
+    check_permissions: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session),
 ):
 
@@ -79,9 +83,11 @@ async def update_single_student(
 
 
 # delete a student
-@router.delete("/{id}", dependencies=[Depends(ensure_admin)])
+@router.delete("/{id}")
 async def delete_single_student(
     id: int,
+    token_injection: None = Depends(inject_token),
+    check_permissions: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session),
 ):
 

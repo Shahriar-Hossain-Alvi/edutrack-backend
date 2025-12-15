@@ -13,8 +13,6 @@ router = APIRouter(
     tags=["users"]  # for swagger
 )
 
-# TODO: add token_injection in secured routes and admin or teacher permissions
-
 
 # user register
 @router.post("/register")
