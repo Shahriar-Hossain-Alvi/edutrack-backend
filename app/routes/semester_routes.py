@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.authenticated_user import get_current_user
+from app.permissions.role_checks import ensure_admin
 from app.services.semester_service import SemesterService
 from app.db.db import get_db_session
 from app.schemas.semester_schema import SemesterCreateSchema, SemesterOutSchema, SemesterUpdateSchema
 from app.schemas.user_schema import UserOutSchema
+from app.utils.token_injector import inject_token
 
 
 router = APIRouter(
@@ -13,18 +15,16 @@ router = APIRouter(
 )
 
 
-# TODO: add token_injection in secured routes
+# TODO: add token_injection in secured routes and permissions
 
 # create semester
 @router.post("/")
 async def add__new_semester(
     semester_data: SemesterCreateSchema,
     db: AsyncSession = Depends(get_db_session),
-    current_user: UserOutSchema = Depends(get_current_user)
+    token_injection: None = Depends(inject_token),
+    check_permissions: UserOutSchema = Depends(ensure_admin),
 ):
-    if(current_user.role.value != "admin"):
-        raise HTTPException(status_code=403, detail="Unauthorized access")
-    
     
     try: 
         return await SemesterService.create_semester(db, semester_data)
@@ -58,11 +58,9 @@ async def update_single_semester(
     id: int,
     semester_data: SemesterUpdateSchema,
     db: AsyncSession = Depends(get_db_session),
-    current_user: UserOutSchema = Depends(get_current_user)
+    token_injection: None = Depends(inject_token),
+    check_permissions: UserOutSchema = Depends(ensure_admin),
 ): 
-    if current_user.role.value != "admin":
-        raise HTTPException(status_code=403, detail="Unauthorized access")
-
     try:
         return await SemesterService.update_semester(db, id, semester_data)
     except Exception as e:
@@ -74,10 +72,9 @@ async def update_single_semester(
 async def delete_single_semester(
     id: int, 
     db: AsyncSession = Depends(get_db_session),
-    current_user: UserOutSchema = Depends(get_current_user)
+    token_injection: None = Depends(inject_token),
+    check_permissions: UserOutSchema = Depends(ensure_admin),
     ):
-    if current_user.role.value != "admin":
-        raise HTTPException(status_code=403, detail="Unauthorized access")
     
     try:
         return await SemesterService.delete_semester(db, id)
