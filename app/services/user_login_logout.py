@@ -44,5 +44,16 @@ async def login_user(
 
     return {
         "message": "Login successful",
-        "access_token": access_token,
+        # "access_token": access_token,
     }  # this token will be stored in the browsers cookie and will be sent to backend for authentication with protected routes
+
+
+async def logout_user(response: Response):
+    response.delete_cookie(
+        key="access_token",
+        httponly=True,
+        samesite="lax"
+    )
+    print("Cookie deleted")
+
+    return {"message": "Logout successful"}

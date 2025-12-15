@@ -3,7 +3,7 @@ from fastapi import FastAPI
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routes import department_routes, login, mark_routes, semester_routes, student_routes, subject_offering_route, subject_routes, user_routes
+from app.routes import department_routes, login_logout, mark_routes, semester_routes, student_routes, subject_offering_route, subject_routes, user_routes
 
 app = FastAPI()
 
@@ -20,7 +20,7 @@ app.add_middleware(
 )
 
 # add the routes
-app.include_router(login.router, prefix="/api")
+app.include_router(login_logout.router, prefix="/api")
 app.include_router(user_routes.router, prefix="/api")
 app.include_router(student_routes.router, prefix="/api")
 

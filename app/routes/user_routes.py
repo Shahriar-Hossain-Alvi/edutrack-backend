@@ -20,7 +20,7 @@ router = APIRouter(
 @router.post("/register")
 async def register_user(user_data: UserCreateSchema, db: AsyncSession = Depends(get_db_session)):
     try:
-        new_user = await UserService.create_user(db, user_data)
+        new_user = await UserService.create_user(user_data, db)
 
         return {"message": f"User created successfully. ID: {new_user.id}"}
     except ValueError as ve:

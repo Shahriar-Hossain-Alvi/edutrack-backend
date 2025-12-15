@@ -13,8 +13,8 @@ class UserService:
 
     @staticmethod
     async def create_user(
+            user_data: UserCreateSchema, # validate user data from request
             db: AsyncSession, # db session will be passed from router file
-            user_data: UserCreateSchema # validate user data from request
         ):
 
         # check for existing user

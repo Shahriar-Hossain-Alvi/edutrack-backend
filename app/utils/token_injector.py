@@ -1,4 +1,4 @@
-from fastapi import Request
+from fastapi import Request, HTTPException, status
 from starlette.datastructures import MutableHeaders
 
 
@@ -10,6 +10,8 @@ async def inject_token(request: Request):
 
     # get the cookie
     access_token = request.cookies.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
     if access_token:
         # TODO: what is the purpose of MutableHeaders? What is _headers?
