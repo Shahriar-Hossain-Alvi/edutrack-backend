@@ -20,7 +20,7 @@ async def register_user(
     user_data: UserCreateSchema,
     db: AsyncSession = Depends(get_db_session),
     token_injection: None = Depends(inject_token),
-    check_permissions: UserOutSchema = Depends(ensure_admin),
+    authorized_user: UserOutSchema = Depends(ensure_admin),
 ):
 
     try:
@@ -46,7 +46,7 @@ async def get_logged_in_user(
 async def get_all_users(
     db: AsyncSession = Depends(get_db_session),
     token_injection: None = Depends(inject_token),
-    check_permissions: UserOutSchema = Depends(ensure_admin),
+    authorized_user: UserOutSchema = Depends(ensure_admin),
 ):
     try:
         users = await UserService.get_users(db)
@@ -60,7 +60,7 @@ async def get_all_users(
 async def get_single_user(
     id: int,
     token_injection: None = Depends(inject_token),
-    check_permissions: UserOutSchema = Depends(ensure_admin),
+    authorized_user: UserOutSchema = Depends(ensure_admin),
     # current_user: UserOutSchema = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session)
 ):
@@ -77,7 +77,7 @@ async def update_single_user_by_admin(
     id: int,
     user_data: UserUpdateSchemaByAdmin,
     token_injection: None = Depends(inject_token),
-    check_permissions: UserOutSchema = Depends(ensure_admin),
+    authorized_user: UserOutSchema = Depends(ensure_admin),
     # current_user: UserOutSchema = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session),
 ):
@@ -109,7 +109,7 @@ async def update_single_user_by_self(
 async def delete_a_user(
     id: int,
     token_injection: None = Depends(inject_token),
-    check_permissions: UserOutSchema = Depends(ensure_admin),
+    authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session),
 ):
     try:

@@ -19,7 +19,7 @@ router = APIRouter(
 async def create_new_subject(
     subject_data: SubjectCreateSchema,
     token_injection: None = Depends(inject_token),
-    check_permissions: UserOutSchema = Depends(ensure_admin),
+    authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session),
 ):
     try:
@@ -79,7 +79,7 @@ async def delete_single_subject(
     id: int,
     db: AsyncSession = Depends(get_db_session),
     token_injection: None = Depends(inject_token),
-    check_permissions: UserOutSchema = Depends(ensure_admin)
+    authorized_user: UserOutSchema = Depends(ensure_admin)
 ):
 
     try:

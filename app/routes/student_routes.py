@@ -14,11 +14,13 @@ router = APIRouter(
 )
 
 # create student record
+
+
 @router.post("/")
 async def create_student_record(
         student_data: StudentCreateSchema,
         token_injection: None = Depends(inject_token),
-        check_permissions: UserOutSchema = Depends(ensure_admin),
+        authorized_user: UserOutSchema = Depends(ensure_admin),
         db: AsyncSession = Depends(get_db_session),
 ):
 
@@ -36,7 +38,7 @@ async def create_student_record(
 )
 async def get_all_students(
     token_injection: None = Depends(inject_token),
-    check_permissions: UserOutSchema = Depends(ensure_admin_or_teacher),
+    authorized_user: UserOutSchema = Depends(ensure_admin_or_teacher),
     db: AsyncSession = Depends(get_db_session),
 ):
 
@@ -68,7 +70,7 @@ async def update_single_student(
     id: int,
     student_data: StudentUpdateSchema,
     token_injection: None = Depends(inject_token),
-    check_permissions: UserOutSchema = Depends(ensure_admin),
+    authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session),
 ):
 
@@ -84,7 +86,7 @@ async def update_single_student(
 async def delete_single_student(
     id: int,
     token_injection: None = Depends(inject_token),
-    check_permissions: UserOutSchema = Depends(ensure_admin),
+    authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session),
 ):
 

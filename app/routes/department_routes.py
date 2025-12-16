@@ -12,37 +12,39 @@ from app.utils.token_injector import inject_token
 
 router = APIRouter(
     prefix="/departments",
-    tags=["departments"] # for swagger
+    tags=["departments"]  # for swagger
 )
 
 # create department
+
+
 @router.post("/")
 async def create_new_department(
-    department_data: DepartmentCreateSchema, 
+    department_data: DepartmentCreateSchema,
     db: AsyncSession = Depends(get_db_session),
     token_injection: None = Depends(inject_token),
-    check_permissions: UserOutSchema = Depends(ensure_admin),
-    ):
+    authorized_user: UserOutSchema = Depends(ensure_admin),
+):
 
     try:
-       return await DepartmentService.create_department(db, department_data)
+        return await DepartmentService.create_department(db, department_data)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# get all departments     
+# get all departments
 @router.get("/", response_model=list[DepartmentOutSchema])
 async def get_all_departments(
     token_injection: None = Depends(inject_token),
     current_user: UserOutSchema = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session),
-    ):
+):
 
-    try: 
+    try:
         return await DepartmentService.get_departments(db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+
 
 # get single department
 @router.get("/{id}", response_model=DepartmentOutSchema)
@@ -51,14 +53,14 @@ async def get_single_department(
     db: AsyncSession = Depends(get_db_session),
     token_injection: None = Depends(inject_token),
     current_user: UserOutSchema = Depends(get_current_user)
-    ):
+):
 
     try:
         return await DepartmentService.get_department(db, id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-    
+
+
 # update a department
 @router.patch("/{id}", response_model=DepartmentOutSchema)
 async def update_single_department(
@@ -66,23 +68,22 @@ async def update_single_department(
     department_data: DepartmentUpdateSchema,
     db: AsyncSession = Depends(get_db_session),
     token_injection: None = Depends(inject_token),
-    check_permissions: UserOutSchema = Depends(ensure_admin),
-    ):
+    authorized_user: UserOutSchema = Depends(ensure_admin),
+):
 
     try:
         return await DepartmentService.update_department(db, id, department_data)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-    
-    
+
+
 # delete a department
 @router.delete("/{id}")
 async def delete_single_department(
     id: int,
     db: AsyncSession = Depends(get_db_session),
     token_injection: None = Depends(inject_token),
-    check_permissions: UserOutSchema = Depends(ensure_admin),
+    authorized_user: UserOutSchema = Depends(ensure_admin),
 ):
     try:
         return await DepartmentService.delete_department(db, id)

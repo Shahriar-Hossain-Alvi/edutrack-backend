@@ -20,7 +20,7 @@ router = APIRouter(
 async def create_new_subject_offering(
     sub_off_data: SubjectOfferingCreateSchema,
     token_injection: None = Depends(inject_token),
-    check_permissions: UserOutSchema = Depends(ensure_admin),
+    authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session),
 ):
     return await SubjectOfferingService.create_subject_offering(sub_off_data, db)
@@ -32,17 +32,17 @@ async def get_offered_subjects_for_marking(
     semester_id: int,
     department_id: int,
     token_injection: None = Depends(inject_token),
-    check_permissions: UserOutSchema = Depends(ensure_admin_or_teacher),
+    authorized_user: UserOutSchema = Depends(ensure_admin_or_teacher),
     db: AsyncSession = Depends(get_db_session),
 ):
-    return await SubjectOfferingService.get_offered_subjects_for_marking(db, semester_id, department_id, check_permissions)
+    return await SubjectOfferingService.get_offered_subjects_for_marking(db, semester_id, department_id, authorized_user)
 
 
 @router.get("/{subject_offering_id}", response_model=SubjectOfferingResponseSchema)
 async def get_single_subject_offering(
     subject_offering_id: int,
     token_injection: None = Depends(inject_token),
-    check_permissions: UserOutSchema = Depends(ensure_admin_or_teacher),
+    authorized_user: UserOutSchema = Depends(ensure_admin_or_teacher),
     db: AsyncSession = Depends(get_db_session),
 ):
     return await SubjectOfferingService.get_subject_offering(db, subject_offering_id)
@@ -51,7 +51,7 @@ async def get_single_subject_offering(
 @router.get("/", response_model=list[SubjectOfferingResponseSchema])
 async def get_all_subject_offerings(
         token_injection: None = Depends(inject_token),
-        check_permissions: UserOutSchema = Depends(ensure_admin),
+        authorized_user: UserOutSchema = Depends(ensure_admin),
         db: AsyncSession = Depends(get_db_session)
 ):
     return await SubjectOfferingService.get_subject_offerings(db)
@@ -62,7 +62,7 @@ async def update_a_subject_offering(
     subject_offering_id: int,
     update_data: SubjectOfferingUpdateSchema,
     token_injection: None = Depends(inject_token),
-    check_permissions: UserOutSchema = Depends(ensure_admin),
+    authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session)
 ):
     return await SubjectOfferingService.update_subject_offering(db, update_data, subject_offering_id)
@@ -72,7 +72,7 @@ async def update_a_subject_offering(
 async def delete_a_subject_offering(
     subject_offering_id: int,
     token_injection: None = Depends(inject_token),
-    check_permissions: UserOutSchema = Depends(ensure_admin),
+    authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session)
 ):
     return await SubjectOfferingService.delete_subject_offering(db, subject_offering_id)
