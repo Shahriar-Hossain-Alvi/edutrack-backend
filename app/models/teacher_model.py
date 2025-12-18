@@ -16,15 +16,15 @@ class Teacher(Base):
         # set null if department is deleted
         "departments.id", ondelete="SET NULL"), nullable=True)
 
-    department: Mapped["Department"] = relationship(
-        back_populates="teachers")  # type: ignore
+    department: Mapped["Department"] = relationship(  # type: ignore
+        back_populates="teachers")
 
     # Relationship with user table
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey(
         "users.id", ondelete="CASCADE"))  # delete teachers record if user is deleted
 
-    user: Mapped["User"] = relationship(
-        back_populates="teacher")  # type: ignore
+    user: Mapped["User"] = relationship(  # type: ignore
+        back_populates="teacher")
 
     # Teachers personal information
     present_address: Mapped[str] = mapped_column(

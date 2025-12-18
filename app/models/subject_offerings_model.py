@@ -14,19 +14,19 @@ class SubjectOfferings(Base):
     taught_by_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="SET NULL"))
 
-    taught_by: Mapped["User"] = relationship(
-        back_populates="subject_offerings")  # type: ignore
+    taught_by: Mapped["User"] = relationship(  # type: ignore
+        back_populates="subject_offerings")
 
     # relationship with subject
     subject_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("subjects.id", ondelete="CASCADE"))
 
-    subject: Mapped["Subject"] = relationship(
-        back_populates="subject_offerings")  # type: ignore
+    subject: Mapped["Subject"] = relationship(  # type: ignore
+        back_populates="subject_offerings")
 
     # relationship with department
     department_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("departments.id", ondelete="CASCADE"))
 
-    department: Mapped["Department"] = relationship(
-        back_populates="subject_offerings")  # type: ignore
+    department: Mapped["Department"] = relationship(  # type: ignore
+        back_populates="subject_offerings")

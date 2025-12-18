@@ -14,12 +14,12 @@ class Department(Base):
         String(100), nullable=False, unique=True)
 
     # Relationships
-    students: Mapped[list["Student"]] = relationship(
-        back_populates="department")  # type: ignore
+    students: Mapped[list["Student"]] = relationship(  # type: ignore
+        back_populates="department")
 
-    teachers: Mapped[list["Teacher"]] = relationship(
-        back_populates="department")  # type: ignore
+    teachers: Mapped[list["Teacher"]] = relationship(  # type: ignore
+        back_populates="department")
 
     # many subjects can belong to many department
-    subject_offerings: Mapped[list["SubjectOfferings"]] = relationship(
-        "SubjectOfferings", back_populates="department")  # type: ignore
+    subject_offerings: Mapped[list["SubjectOfferings"]] = relationship(  # type: ignore
+        "SubjectOfferings", back_populates="department")

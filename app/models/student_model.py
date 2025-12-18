@@ -21,28 +21,28 @@ class Student(Base):
         # set null if department is deleted
         "departments.id", ondelete="SET NULL"), nullable=True)
 
-    department: Mapped["Department"] = relationship(
-        back_populates="students")  # type: ignore
+    department: Mapped["Department"] = relationship(  # type: ignore
+        back_populates="students")
 
     # Relationship with semester
     semester_id: Mapped[int] = mapped_column(Integer, ForeignKey(
         "semesters.id", ondelete="SET NULL"))  # set null if department is deleted
 
     # each student has one semester (current semester)
-    semester: Mapped["Semester"] = relationship(
-        back_populates="students")  # type: ignore
+    semester: Mapped["Semester"] = relationship(  # type: ignore
+        back_populates="students")
 
     # Relationship with user
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey(
         "users.id", ondelete="CASCADE"))  # delete student record if user is deleted
 
-    user: Mapped["User"] = relationship(
-        back_populates="student")  # type: ignore
+    user: Mapped["User"] = relationship(  # type: ignore
+        back_populates="student")
 
     # relationship with marks
     # one student can have many marks
-    marks: Mapped[list["Mark"]] = relationship(
-        back_populates="student")  # type: ignore
+    marks: Mapped[list["Mark"]] = relationship(  # type: ignore
+        back_populates="student")
 
     # Students personal information
     present_address: Mapped[str] = mapped_column(

@@ -69,19 +69,19 @@ class Mark(Base):
     student_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("students.id", ondelete="CASCADE"))
 
-    student: Mapped["Student"] = relationship(
-        back_populates="marks")  # type: ignore
+    student: Mapped["Student"] = relationship(  # type: ignore
+        back_populates="marks")
 
     # relationship with subject
     subject_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("subjects.id", ondelete="CASCADE"))
 
-    subject: Mapped["Subject"] = relationship(
-        back_populates="marks")  # type: ignore
+    subject: Mapped["Subject"] = relationship(  # type: ignore
+        back_populates="marks")
 
     # relationship with semester
     semester_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("semesters.id", ondelete="CASCADE"))
 
-    semester: Mapped["Semester"] = relationship(
-        back_populates="marks")  # type: ignore
+    semester: Mapped["Semester"] = relationship(  # type: ignore
+        back_populates="marks")
