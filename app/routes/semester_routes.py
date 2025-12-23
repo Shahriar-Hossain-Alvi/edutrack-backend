@@ -29,6 +29,8 @@ async def add__new_semester(
         return await SemesterService.create_semester(db, semester_data)
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -38,6 +40,8 @@ async def add__new_semester(
 async def get_all_semesters(db: AsyncSession = Depends(get_db_session)):
     try:
         return await SemesterService.get_semesters(db)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -47,12 +51,14 @@ async def get_all_semesters(db: AsyncSession = Depends(get_db_session)):
 async def get_single_semester(id: int, db: AsyncSession = Depends(get_db_session)):
     try:
         return await SemesterService.get_semester(db, id)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 # update a semester
-@router.patch("/{id}", response_model=SemesterOutSchema)
+@router.patch("/{id}")
 async def update_single_semester(
     id: int,
     semester_data: SemesterUpdateSchema,
@@ -62,6 +68,8 @@ async def update_single_semester(
 ):
     try:
         return await SemesterService.update_semester(db, id, semester_data)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -77,5 +85,7 @@ async def delete_single_semester(
 
     try:
         return await SemesterService.delete_semester(db, id)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

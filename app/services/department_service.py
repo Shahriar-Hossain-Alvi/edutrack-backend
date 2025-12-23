@@ -25,16 +25,21 @@ class DepartmentService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Department already exist")
 
-        new_department = Department(department_name=lowercase_department_name)
+        try:
+            new_department = Department(
+                department_name=lowercase_department_name)
 
-        db.add(new_department)  # add the new_department to db(session)
-        await db.commit()
-        # refresh the object(get the new data)
-        await db.refresh(new_department)
+            db.add(new_department)  # add the new_department to db(session)
+            await db.commit()
+            # refresh the object(get the new data)
+            await db.refresh(new_department)
 
-        return {
-            "message": f"New Department created successfully. ID: {new_department.id}"
-        }
+            return {
+                "message": f"New Department created successfully. ID: {new_department.id}"
+            }
+        except IntegrityError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Department already exist(Integrity Error)")
 
     @staticmethod
     async def get_departments(db: AsyncSession):
