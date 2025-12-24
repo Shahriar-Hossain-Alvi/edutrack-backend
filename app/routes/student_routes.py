@@ -26,6 +26,8 @@ async def create_student_record(
 
     try:
         return await StudentService.create_student(db, student_data)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -34,7 +36,7 @@ async def create_student_record(
 # get all students
 @router.get(
     "/",
-    response_model=list[StudentOutSchema]
+    response_model=list[StudentResponseSchemaNested]
 )
 async def get_all_students(
     token_injection: None = Depends(inject_token),

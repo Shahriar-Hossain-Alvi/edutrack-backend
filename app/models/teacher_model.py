@@ -44,3 +44,7 @@ class Teacher(Base):
     photo_url: Mapped[str] = mapped_column(
         String(400), nullable=False, default=""
     )
+
+    photo_public_id: Mapped[str] = mapped_column(
+        String(300), nullable=False, default=""
+    )

@@ -43,7 +43,7 @@ class DepartmentService:
 
     @staticmethod
     async def get_departments(db: AsyncSession):
-        statement = select(Department)
+        statement = select(Department).order_by(Department.department_name)
         result = await db.execute(statement)
 
         return result.scalars().all()

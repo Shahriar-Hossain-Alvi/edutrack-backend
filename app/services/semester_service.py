@@ -36,7 +36,7 @@ class SemesterService:
 
     @staticmethod
     async def get_semesters(db: AsyncSession):
-        statement = select(Semester)
+        statement = select(Semester).order_by(Semester.semester_number)
         result = await db.execute(statement)
 
         return result.scalars().all()
