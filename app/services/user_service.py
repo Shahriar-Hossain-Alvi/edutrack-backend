@@ -1,11 +1,13 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.authenticated_user import get_current_user
+from app.core.integrity_error_parser import parse_integrity_error
 from app.db.db import get_db_session
 from app.models import User
 from app.schemas.user_schema import UserCreateSchema, UserOutSchema, UserUpdateSchemaByAdmin, UserUpdateSchemaByUser
 from app.core import hash_password
 from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
 
 
 class UserService:
@@ -24,20 +26,30 @@ class UserService:
         if (is_exist):
             raise ValueError("User already exist")
 
-        # hash password
-        hashed_pwd = hash_password(user_data.password)
+        try:
+            # hash password
+            hashed_pwd = hash_password(user_data.password)
 
-        # create user (sqlalchemy model/instance creation)
-        new_user = User(
-            # convert the pydantic object to dictionary and unpack it to match the model (keyword parameter unpacking)
-            **user_data.model_dump(exclude={"password"}),
-            hashed_password=hashed_pwd)
+            # create user (sqlalchemy model/instance creation)
+            new_user = User(
+                # convert the pydantic object to dictionary and unpack it to match the model (keyword parameter unpacking)
+                **user_data.model_dump(exclude={"password"}),
+                hashed_password=hashed_pwd)
 
-        db.add(new_user)  # add the new_user to db(session)
-        await db.commit()  # commit the changes(adds to database)
-        await db.refresh(new_user)  # refresh the object(get the new data)
+            db.add(new_user)  # add the new_user to db(session)
+            await db.commit()  # commit the changes(adds to database)
+            await db.refresh(new_user)  # refresh the object(get the new data)
 
-        return new_user
+            return new_user
+        except IntegrityError as e:
+            # generally the PostgreSQL's error message will be in e.orig.args[0]
+            error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
+                e)
+
+            # send the error message to the parser
+            readable_error = parse_integrity_error(error_msg)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
 
     @staticmethod
     async def get_users(db: AsyncSession):
@@ -64,16 +76,26 @@ class UserService:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-        updated_user_data = user_update_data_by_admin.model_dump(
-            exclude_unset=True)
+        try:
+            updated_user_data = user_update_data_by_admin.model_dump(
+                exclude_unset=True)
 
-        for key, value in updated_user_data.items():
-            setattr(user, key, value)
+            for key, value in updated_user_data.items():
+                setattr(user, key, value)
 
-        await db.commit()
-        await db.refresh(user)
+            await db.commit()
+            await db.refresh(user)
 
-        return user
+            return user
+        except IntegrityError as e:
+            # generally the PostgreSQL's error message will be in e.orig.args[0]
+            error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
+                e)
+
+            # send the error message to the parser
+            readable_error = parse_integrity_error(error_msg)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
 
     @staticmethod
     async def update_user_self(

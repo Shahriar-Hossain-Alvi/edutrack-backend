@@ -29,6 +29,7 @@ async def create_student_record(
     except HTTPException:
         raise
     except Exception as e:
+        print(f"Unexpected Error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
@@ -46,7 +47,10 @@ async def get_all_students(
 
     try:
         return await StudentService.get_students(db)
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"Unexpected Error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
@@ -61,7 +65,10 @@ async def get_single_student(
 ):
     try:
         return await StudentService.get_student(db, id)
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"Unexpected Error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
@@ -81,7 +88,10 @@ async def update_single_student(
 
     try:
         return await StudentService.update_student(db, id, student_data)
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"Unexpected Error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
@@ -98,7 +108,10 @@ async def update_single_student_by_admin(
 
     try:
         return await StudentService.update_student_by_admin(db, id, student_data)
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"Unexpected Error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
@@ -114,6 +127,9 @@ async def delete_single_student(
 
     try:
         return await StudentService.delete_student(db, id)
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"Unexpected Error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

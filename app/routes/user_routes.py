@@ -29,6 +29,8 @@ async def register_user(
         return {"message": f"User created successfully. ID: {new_user.id}"}
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -51,6 +53,8 @@ async def get_all_users(
     try:
         users = await UserService.get_users(db)
         return users
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -66,6 +70,8 @@ async def get_single_user(
 ):
     try:
         return await UserService.get_user(db, id)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -83,6 +89,8 @@ async def update_single_user_by_admin(
 ):
     try:
         return await UserService.update_user_by_admin(db, id, user_data)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -99,6 +107,8 @@ async def update_single_user_by_self(
 ):
     try:
         return await UserService.update_user_self(db, id, user_data, current_user)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -114,6 +124,8 @@ async def delete_a_user(
 ):
     try:
         return await UserService.delete_user(db, id)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

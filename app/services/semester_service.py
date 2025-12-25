@@ -1,8 +1,10 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.integrity_error_parser import parse_integrity_error
 from app.models import Semester
 from app.schemas.semester_schema import SemesterCreateSchema, SemesterUpdateSchema
 from sqlalchemy import select, or_
+from sqlalchemy.exc import IntegrityError
 
 
 class SemesterService:
@@ -25,14 +27,24 @@ class SemesterService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Semester already exist")
 
-        new_semester = Semester(**semester_data.model_dump())
-        db.add(new_semester)
-        await db.commit()
-        await db.refresh(new_semester)
+        try:
+            new_semester = Semester(**semester_data.model_dump())
+            db.add(new_semester)
+            await db.commit()
+            await db.refresh(new_semester)
 
-        return {
-            "message": f"New Semester created successfully. ID: {new_semester.id}"
-        }
+            return {
+                "message": f"New Semester created successfully. ID: {new_semester.id}"
+            }
+        except IntegrityError as e:
+            # generally the PostgreSQL's error message will be in e.orig.args[0]
+            error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
+                e)
+
+            # send the error message to the parser
+            readable_error = parse_integrity_error(error_msg)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
 
     @staticmethod
     async def get_semesters(db: AsyncSession):
@@ -62,18 +74,28 @@ class SemesterService:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Semester not found")
 
-        updated_semester_data = semester_update_data.model_dump(
-            exclude_unset=True)  # convert to dictionary
+        try:
+            updated_semester_data = semester_update_data.model_dump(
+                exclude_unset=True)  # convert to dictionary
 
-        for key, value in updated_semester_data.items():
-            setattr(semester, key, value)
+            for key, value in updated_semester_data.items():
+                setattr(semester, key, value)
 
-        await db.commit()
-        await db.refresh(semester)
+            await db.commit()
+            await db.refresh(semester)
 
-        return {
-            "message": f"Semester updated successfully. ID: {semester.id}"
-        }
+            return {
+                "message": f"Semester updated successfully. ID: {semester.id}"
+            }
+        except IntegrityError as e:
+            # generally the PostgreSQL's error message will be in e.orig.args[0]
+            error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
+                e)
+
+            # send the error message to the parser
+            readable_error = parse_integrity_error(error_msg)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
 
     @staticmethod
     async def delete_semester(db: AsyncSession, semester_id: int):

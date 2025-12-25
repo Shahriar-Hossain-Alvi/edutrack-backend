@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.authenticated_user import get_current_user
 from app.db.db import get_db_session
@@ -23,7 +23,13 @@ async def create_new_subject_offering(
     authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session),
 ):
-    return await SubjectOfferingService.create_subject_offering(sub_off_data, db)
+    try:
+        return await SubjectOfferingService.create_subject_offering(sub_off_data, db)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 # get offered subjects list for marking (Admin=All subjects, Teacher=subjects they teach)
@@ -35,7 +41,13 @@ async def get_offered_subjects_for_marking(
     authorized_user: UserOutSchema = Depends(ensure_admin_or_teacher),
     db: AsyncSession = Depends(get_db_session),
 ):
-    return await SubjectOfferingService.get_offered_subjects_for_marking(db, semester_id, department_id, authorized_user)
+    try:
+        return await SubjectOfferingService.get_offered_subjects_for_marking(db, semester_id, department_id, authorized_user)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @router.get("/{subject_offering_id}", response_model=SubjectOfferingResponseSchema)
@@ -45,7 +57,13 @@ async def get_single_subject_offering(
     authorized_user: UserOutSchema = Depends(ensure_admin_or_teacher),
     db: AsyncSession = Depends(get_db_session),
 ):
-    return await SubjectOfferingService.get_subject_offering(db, subject_offering_id)
+    try:
+        return await SubjectOfferingService.get_subject_offering(db, subject_offering_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @router.get("/", response_model=list[SubjectOfferingResponseSchema])
@@ -54,7 +72,13 @@ async def get_all_subject_offerings(
         authorized_user: UserOutSchema = Depends(ensure_admin),
         db: AsyncSession = Depends(get_db_session)
 ):
-    return await SubjectOfferingService.get_subject_offerings(db)
+    try:
+        return await SubjectOfferingService.get_subject_offerings(db)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @router.patch("/{subject_offering_id}", response_model=SubjectOfferingResponseSchema)
@@ -65,7 +89,13 @@ async def update_a_subject_offering(
     authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session)
 ):
-    return await SubjectOfferingService.update_subject_offering(db, update_data, subject_offering_id)
+    try:
+        return await SubjectOfferingService.update_subject_offering(db, update_data, subject_offering_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @router.delete("/{subject_offering_id}")
@@ -75,4 +105,10 @@ async def delete_a_subject_offering(
     authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session)
 ):
-    return await SubjectOfferingService.delete_subject_offering(db, subject_offering_id)
+    try:
+        return await SubjectOfferingService.delete_subject_offering(db, subject_offering_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

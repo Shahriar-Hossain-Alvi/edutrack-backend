@@ -23,6 +23,8 @@ async def create_teacher_record(
 
     try:
         return await TeacherService.create_teacher(db, teacher_data)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -38,6 +40,8 @@ async def get_all_teachers(
 
     try:
         return await TeacherService.get_teachers(db)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -50,6 +54,8 @@ async def get_all_faculty(
 
     try:
         return await TeacherService.grouped_teachers_by_department(db)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -66,6 +72,8 @@ async def get_single_teacher(
 
     try:
         return await TeacherService.get_teacher(db, id)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -86,6 +94,8 @@ async def update_teacher(
 
     try:
         return await TeacherService.update_teacher(db, id, teacher_data)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -102,6 +112,8 @@ async def update_teacher_by_admin(
 
     try:
         return await TeacherService.update_teacher_by_admin(db, id, teacher_data)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -119,6 +131,8 @@ async def delete_a_teacher(
 
     try:
         return await TeacherService.delete_teacher(db, id)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

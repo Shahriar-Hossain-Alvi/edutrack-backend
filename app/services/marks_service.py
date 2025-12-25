@@ -1,6 +1,7 @@
 from collections import defaultdict
 from typing import Annotated
 from sqlalchemy import and_, join, select
+from app.core.integrity_error_parser import parse_integrity_error
 from app.models import Mark, ResultStatus
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, Query, status
@@ -14,6 +15,7 @@ from app.schemas.user_schema import UserOutSchema
 from app.utils import check_existence
 from sqlalchemy.orm import joinedload
 from datetime import datetime
+from sqlalchemy.exc import IntegrityError
 
 
 class MarksService:
@@ -119,11 +121,21 @@ class MarksService:
         # pass this new_mark object to the compute_total_marks_and_gpa function to get the total marks and gpa. It'll update the new_mark object
         MarksService.compute_total_marks_and_gpa(new_mark)
 
-        db.add(new_mark)
-        await db.commit()
-        await db.refresh(new_mark)
+        try:
+            db.add(new_mark)
+            await db.commit()
+            await db.refresh(new_mark)
 
-        return new_mark
+            return new_mark
+        except IntegrityError as e:
+            # generally the PostgreSQL's error message will be in e.orig.args[0]
+            error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
+                e)
+
+            # send the error message to the parser
+            readable_error = parse_integrity_error(error_msg)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
 
     # group marks by semester
 
@@ -332,11 +344,20 @@ class MarksService:
             #     mark.final_exam_mark = update_data.final_exam_mark
 
             # MarksService.compute_total_marks_and_gpa(mark)
+        try:
+            await db.commit()
+            await db.refresh(mark)
 
-        await db.commit()
-        await db.refresh(mark)
+            return mark
+        except IntegrityError as e:
+            # generally the PostgreSQL's error message will be in e.orig.args[0]
+            error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
+                e)
 
-        return mark
+            # send the error message to the parser
+            readable_error = parse_integrity_error(error_msg)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
 
     # update a mark by student
 

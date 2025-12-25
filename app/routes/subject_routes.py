@@ -24,6 +24,8 @@ async def create_new_subject(
 ):
     try:
         return await SubjectService.create_subject(db, subject_data)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -38,6 +40,8 @@ async def get_all_subjects(
 ):
     try:
         return await SubjectService.get_subjects(db)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -52,6 +56,8 @@ async def get_single_subject(
         db: AsyncSession = Depends(get_db_session)):
     try:
         return await SubjectService.get_subject(db, id)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -67,6 +73,8 @@ async def get_single_subject_by_code(
 ):
     try:
         return await SubjectService.get_subject_by_code(db, subject_code)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -84,6 +92,8 @@ async def delete_single_subject(
 
     try:
         return await SubjectService.delete_subject(db, id)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

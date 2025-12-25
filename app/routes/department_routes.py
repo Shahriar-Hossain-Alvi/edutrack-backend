@@ -44,6 +44,8 @@ async def get_all_departments(
 
     try:
         return await DepartmentService.get_departments(db)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

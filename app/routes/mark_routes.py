@@ -23,11 +23,17 @@ async def create_new_mark(
     authorized_user: UserOutSchema = Depends(ensure_admin_or_teacher),
     db: AsyncSession = Depends(get_db_session),
 ):
-
-    return await MarksService.create_mark(db, mark_data, authorized_user)
-
+    try:
+        return await MarksService.create_mark(db, mark_data, authorized_user)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 # update marks
+
+
 @router.patch("/{mark_id}", response_model=MarksResponseSchema)
 async def update_a_mark(
     mark_id: int,
@@ -37,10 +43,17 @@ async def update_a_mark(
     db: AsyncSession = Depends(get_db_session),
 ):
 
-    return await MarksService.update_mark(db, mark_data, mark_id, authorized_user)
-
+    try:
+        return await MarksService.update_mark(db, mark_data, mark_id, authorized_user)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 # delete marks
+
+
 @router.delete("/{mark_id}", response_model=MarksResponseSchema)
 async def delete_a_mark(
     mark_id: int,
@@ -48,10 +61,17 @@ async def delete_a_mark(
     authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session),
 ):
-    return await MarksService.delete_mark(db, mark_id)
-
+    try:
+        return await MarksService.delete_mark(db, mark_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 # get all subjects marks for a student
+
+
 @router.get("/student/{student_id}", response_model=list[SemesterWiseAllSubjectsMarksResponseSchema])
 async def get_all_subjects_marks_for_a_student(
     student_id: int,
@@ -61,10 +81,17 @@ async def get_all_subjects_marks_for_a_student(
     token_injection: None = Depends(inject_token),
     current_user: UserOutSchema = Depends(get_current_user),
 ):
-    return await MarksService.get_all_marks_for_a_student(db, student_id, semester_id, subject_id)
-
+    try:
+        return await MarksService.get_all_marks_for_a_student(db, student_id, semester_id, subject_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 # get result department wise with semester and session
+
+
 @router.get(
     "/department_wise_result",
     response_model=list[SemesterWiseAllSubjectsMarksWithPopulatedDataResponseSchema]
@@ -78,4 +105,10 @@ async def get_department_wise_result(
     db: AsyncSession = Depends(get_db_session),
 
 ):
-    return await MarksService.get_department_semester_result(db, semester_id, department_id, session)
+    try:
+        return await MarksService.get_department_semester_result(db, semester_id, department_id, session)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

@@ -1,6 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from app.core.integrity_error_parser import parse_integrity_error
 from app.models import Department
 from app.schemas.department_schema import DepartmentCreateSchema, DepartmentOutSchema, DepartmentUpdateSchema
 from sqlalchemy.exc import IntegrityError
@@ -37,9 +38,15 @@ class DepartmentService:
             return {
                 "message": f"New Department created successfully. ID: {new_department.id}"
             }
-        except IntegrityError:
+        except IntegrityError as e:
+            # generally the PostgreSQL's error message will be in e.orig.args[0]
+            error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
+                e)
+
+            # send the error message to the parser
+            readable_error = parse_integrity_error(error_msg)
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Department already exist(Integrity Error)")
+                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
 
     @staticmethod
     async def get_departments(db: AsyncSession):
@@ -80,10 +87,15 @@ class DepartmentService:
             return {
                 "message": f"{department.department_name} department updated successfully. ID: {department.id}"
             }
-        # TODO: add integrity error to other service funtions
-        except IntegrityError:
+        except IntegrityError as e:
+            # generally the PostgreSQL's error message will be in e.orig.args[0]
+            error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
+                e)
+
+            # send the error message to the parser
+            readable_error = parse_integrity_error(error_msg)
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Department with this name already exist")
+                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
 
     @staticmethod
     async def delete_department(
