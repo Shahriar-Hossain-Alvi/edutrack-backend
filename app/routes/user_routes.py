@@ -4,7 +4,7 @@ from app.core import get_current_user
 from app.permissions.role_checks import ensure_admin
 from app.services.user_service import UserService
 from app.db.db import get_db_session
-from app.schemas.user_schema import UserCreateSchema, UserOutSchema, UserUpdateSchemaByAdmin, UserUpdateSchemaByUser
+from app.schemas.user_schema import AllUsersWithDetailsResponseSchema, UserCreateSchema, UserOutSchema, UserUpdateSchemaByAdmin, UserUpdateSchemaByUser
 from app.utils import inject_token
 
 
@@ -14,7 +14,7 @@ router = APIRouter(
 )
 
 
-# user register
+# user(admin) register
 @router.post("/register")
 async def register_user(
     user_data: UserCreateSchema,
@@ -24,11 +24,7 @@ async def register_user(
 ):
 
     try:
-        new_user = await UserService.create_user(user_data, db)
-
-        return {"message": f"User created successfully. ID: {new_user.id}"}
-    except ValueError as ve:
-        raise HTTPException(status_code=400, detail=str(ve))
+        return await UserService.create_user(user_data, db)
     except HTTPException:
         raise
     except Exception as e:
@@ -44,14 +40,15 @@ async def get_logged_in_user(
 
 
 # get all user
-@router.get("/", response_model=list[UserOutSchema])
+@router.get("/", response_model=list[AllUsersWithDetailsResponseSchema])
 async def get_all_users(
+    user_role: str | None = None,
     db: AsyncSession = Depends(get_db_session),
     token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
 ):
     try:
-        users = await UserService.get_users(db)
+        users = await UserService.get_users(db, user_role)
         return users
     except HTTPException:
         raise
