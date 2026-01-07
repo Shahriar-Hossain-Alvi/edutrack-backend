@@ -3,13 +3,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.integrity_error_parser import parse_integrity_error
 from app.models import User
+from app.models.audit_log_model import LogLevel
 from app.models.student_model import Student
 from app.models.teacher_model import Teacher
 from app.schemas.user_schema import UserCreateSchema, UserOutSchema, UserUpdateSchemaByAdmin, UserUpdateSchemaByUser
 from app.core import hash_password
-from fastapi import HTTPException, status
+from fastapi import HTTPException, Request, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
+
+from app.services.audit_logging_service import create_audit_log_isolated
 
 
 class UserService:
@@ -17,7 +20,9 @@ class UserService:
     @staticmethod
     async def create_user(
         user_data: UserCreateSchema,  # validate user data from request
+        request: Request,
         db: AsyncSession,  # db session will be passed from router file
+        authorized_user: UserOutSchema
     ):
 
         # check for existing user
@@ -44,8 +49,17 @@ class UserService:
             await db.commit()  # commit the changes(adds to database)
             await db.refresh(new_user)  # refresh the object(get the new data)
             logger.success("New user created successfully")
+
+            # DB Log
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.INFO.value, created_by=authorized_user.id,
+                action="CREATE USER SUCCESS",
+                details=f"New user created. User ID: {new_user.id}."
+            )
+
             return {"message": f"User created successfully. ID: {new_user.id}, username: {new_user.username}"}
         except IntegrityError as e:
+            await db.rollback()
             logger.error(f"Error occurred while creating new user: {e}")
             # generally the PostgreSQL's error message will be in e.orig.args[0]
             error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
@@ -54,6 +68,19 @@ class UserService:
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
             logger.error(f"Readable Error: {readable_error}")
+
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.ERROR.value, created_by=getattr(
+                    authorized_user, "id", None),
+                action="CREATE USER DB ERROR",
+                details=f"Integrity error: {readable_error}",
+                payload={
+                    "error": readable_error,
+                    "raw_error": error_msg,
+                       "payload_data": user_data.model_dump(mode="json", exclude_none=True, exclude={"password"})
+                }
+            )
+
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
 
@@ -106,7 +133,13 @@ class UserService:
         return single_user
 
     @staticmethod
-    async def update_user_by_admin(db: AsyncSession, user_id: int, user_update_data_by_admin: UserUpdateSchemaByAdmin):
+    async def update_user_by_admin(
+        user_id: int,
+        user_update_data_by_admin: UserUpdateSchemaByAdmin,
+        request: Request,
+        db: AsyncSession,
+        authorized_user: UserOutSchema
+    ):
         user = await db.scalar(select(User).where(User.id == user_id))
 
         if not user:
@@ -123,24 +156,46 @@ class UserService:
             await db.commit()
             await db.refresh(user)
 
+            # DB Log
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.INFO.value, created_by=authorized_user.id,
+                action="UPDATE USER SUCCESS",
+                details=f"User updated. User ID: {user.id}."
+            )
+
             return {
                 "message": f"User updated successfully for username: {user.username}, role: {user.role.value}"
             }
         except IntegrityError as e:
+            await db.rollback()
             # generally the PostgreSQL's error message will be in e.orig.args[0]
             error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
                 e)
 
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
+
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.ERROR.value, created_by=getattr(
+                    authorized_user, "id", None),
+                action="UPDATE USER DB ERROR",
+                details=f"Integrity error: {readable_error}",
+                payload={
+                    "error": readable_error,
+                    "raw_error": error_msg,
+                       "payload_data": user_update_data_by_admin.model_dump()
+                }
+            )
+
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
 
     @staticmethod
     async def update_user_self(
-        db: AsyncSession,
         user_id: int,
         updated_password: UserUpdateSchemaByUser,
+        request: Request,
+        db: AsyncSession,
         current_user: UserOutSchema
     ):
         user = await db.scalar(select(User).where(User.id == user_id))
@@ -152,27 +207,93 @@ class UserService:
         if user.id != current_user.id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                                 detail="You are not authorized to update this user")
+        try:
+            updated_hashed_password = hash_password(updated_password.password)
 
-        updated_hashed_password = hash_password(updated_password.password)
+            user.hashed_password = updated_hashed_password
 
-        user.hashed_password = updated_hashed_password
+            await db.commit()
+            await db.refresh(user)
 
-        await db.commit()
-        await db.refresh(user)
+            # DB Log
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.INFO.value, created_by=current_user.id,
+                action="UPDATE USER SUCCESS",
+                details=f"User updated. User ID: {user.id}."
+            )
 
-        return user
+            return user
+        except IntegrityError as e:
+            await db.rollback()
+            # generally the PostgreSQL's error message will be in e.orig.args[0]
+            error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
+                e)
+
+            # send the error message to the parser
+            readable_error = parse_integrity_error(error_msg)
+
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.ERROR.value, created_by=getattr(
+                    current_user, "id", None),
+                action="UPDATE USER DB ERROR",
+                details=f"Integrity error: {readable_error}",
+                payload={
+                    "error": readable_error,
+                    "raw_error": error_msg,
+                       "payload_data": user_id
+                }
+            )
+
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
 
     @staticmethod
-    async def delete_user(db: AsyncSession, user_id: int):
+    async def delete_user(
+        user_id: int,
+        request: Request,
+        db: AsyncSession,
+        authorized_user: UserOutSchema
+    ):
         user = await db.scalar(select(User).where(User.id == user_id))
 
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-        await db.delete(user)
-        await db.commit()
+        try:
+            await db.delete(user)
+            await db.commit()
 
-        return {
-            "message": f"User: {user.username}, role: {user.role.value} deleted successfully"
-        }
+            # DB Log
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.INFO.value, created_by=authorized_user.id,
+                action="DELETE USER SUCCESS",
+                details=f"User deleted. User ID: {user.id}."
+            )
+
+            return {
+                "message": f"User: {user.username}, role: {user.role.value} deleted successfully"
+            }
+        except IntegrityError as e:
+            await db.rollback()
+            # generally the PostgreSQL's error message will be in e.orig.args[0]
+            error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
+                e)
+
+            # send the error message to the parser
+            readable_error = parse_integrity_error(error_msg)
+
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.ERROR.value, created_by=getattr(
+                    authorized_user, "id", None),
+                action="DELETE USER DB ERROR",
+                details=f"Integrity error: {readable_error}",
+                payload={
+                    "error": readable_error,
+                    "raw_error": error_msg,
+                       "payload_data": user_id
+                }
+            )
+
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)

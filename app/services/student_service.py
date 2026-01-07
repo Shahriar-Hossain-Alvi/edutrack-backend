@@ -3,6 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.integrity_error_parser import parse_integrity_error
 from app.core.pw_hash import hash_password
+from app.db.db import AsyncSessionLocal
 from app.models.audit_log_model import LogLevel
 from app.models.department_model import Department
 from app.models.semester_model import Semester
@@ -14,7 +15,7 @@ from fastapi import HTTPException, Request, status, Depends
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import IntegrityError
 from app.schemas.user_schema import UserOutSchema
-from app.services.audit_logging_service import create_audit_log
+from app.services.audit_logging_service import create_audit_log_isolated
 from app.utils import check_existence
 
 
@@ -60,8 +61,7 @@ class StudentService:
             await db.flush()  # This won't add the user to the database yet but it'll generate a primary key for the user
 
             # create student
-            new_student_info = student_data.model_dump(
-                exclude={"user"})
+            new_student_info = student_data.model_dump(exclude={"user"})
             new_student = Student(
                 **new_student_info,
                 user_id=new_user.id
@@ -73,36 +73,45 @@ class StudentService:
             logger.success("New student created successfully")
 
             # DB Log
-            await create_audit_log(
-                db=db, request=request, level=LogLevel.INFO.value, created_by=authorized_user.id,
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.INFO.value, created_by=authorized_user.id,
                 action="CREATE STUDENT SUCCESS",
                 details=f"New student created. Student ID: {new_student.id}, User ID: {new_user.id}."
             )
-
+            # await db.commit()  # for the audit log
             return {
                 "message": f"Student created successfully. Student ID: {new_student.id}, User ID: {new_user.id}"
             }
         except IntegrityError as e:
-            logger.error(f"Integrity error while creating student: {e}")
+            # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state to save the Audit Log
+            await db.rollback()
+
             # generally the PostgreSQL's error message will be in e.orig.args[0]
             error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
                 e)
 
-            # send the error message to the parser
+            logger.error(f"Integrity error while creating student: {e}")
+
             readable_error = parse_integrity_error(error_msg)
-            logger.error(readable_error)
+            logger.error("Readable Error: ", readable_error)
 
             # DB Log
-            await create_audit_log(
-                db=db, request=request, level=LogLevel.ERROR.value, created_by=authorized_user.id,
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.ERROR.value,
+                created_by=getattr(authorized_user, "id", None),
                 action="CREATE STUDENT DB ERROR",
                 details=f"Integrity error: {readable_error}",
                 payload={
                     "error": readable_error,
                     "raw_error": error_msg,
-                    "payload_data": student_data.model_dump(mode="json", exclude_none=True, exclude={"user": {"password"}})
+                    "payload_data": student_data.model_dump(
+                        mode="json",
+                        exclude_none=True,
+                        exclude={"user": {"password"}}
+                    )
                 }
             )
+            # await db.commit()
 
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
@@ -162,8 +171,8 @@ class StudentService:
             await db.refresh(student)
             logger.success("Student updated successfully")
 
-            await create_audit_log(
-                db=db, request=request, level=LogLevel.INFO.value,
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.INFO.value,
                 action="UPDATE STUDENT SUCCCESS",
                 details=f"Student: {student.name} updated. Student ID: {student.id} updated",
                 created_by=authorized_user.id,
@@ -176,6 +185,7 @@ class StudentService:
                 "message": f"Student updated successfully. Student ID: {student.id}"
             }
         except IntegrityError as e:
+            await db.rollback()
             logger.error(f"Integrity error while updating student: {e}")
             # generally the PostgreSQL's error message will be in e.orig.args[0]
             error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
@@ -185,11 +195,11 @@ class StudentService:
             readable_error = parse_integrity_error(error_msg)
             logger.error(readable_error)
 
-            await create_audit_log(
-                db=db, request=request, level=LogLevel.ERROR.value,
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.ERROR.value,
                 action="UPDATE STUDENT ERROR",
                 details=f"Student update failed. Error: {readable_error}",
-                created_by=authorized_user.id,
+                created_by=getattr(authorized_user, "id", None),
                 payload={
                     "error": readable_error,
                     "raw_error": error_msg,
@@ -227,8 +237,8 @@ class StudentService:
             await db.commit()
             await db.refresh(student)
 
-            await create_audit_log(
-                db=db, request=request, level=LogLevel.INFO.value,
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.INFO.value,
                 action="UPDATE STUDENT SUCCCESS",
                 details=f"Student: {student.name}, ID: {student.id} updated",
                 created_by=current_user.id,
@@ -241,6 +251,7 @@ class StudentService:
                 "message": f"Student updated successfully. Student ID: {student.id}"
             }
         except IntegrityError as e:
+            await db.rollback()
             # generally the PostgreSQL's error message will be in e.orig.args[0]
             error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
                 e)
@@ -248,11 +259,11 @@ class StudentService:
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
 
-            await create_audit_log(
-                db=db, request=request, level=LogLevel.ERROR.value,
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.ERROR.value,
                 action="UPDATE STUDENT ERROR",
                 details=f"Student update failed. Error: {readable_error}",
-                created_by=current_user.id,
+                created_by=getattr(current_user, "id", None),
                 payload={
                     "error": readable_error,
                     "raw_error": error_msg,
@@ -281,8 +292,8 @@ class StudentService:
             await db.delete(student)
             await db.commit()
 
-            await create_audit_log(
-                db=db, request=request, level=LogLevel.INFO.value,
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.INFO.value,
                 action="DELETE STUDENT SUCCCESS",
                 details=f"Student: {student.name}, ID: {student.id} deleted",
                 created_by=authorized_user.id,
@@ -293,6 +304,7 @@ class StudentService:
 
             return {"message": f"{student.name} student deleted successfully"}
         except IntegrityError as e:
+            await db.rollback()
             # generally the PostgreSQL's error message will be in e.orig.args[0]
             error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
                 e)
@@ -300,11 +312,11 @@ class StudentService:
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
 
-            await create_audit_log(
-                db=db, request=request, level=LogLevel.ERROR.value,
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.ERROR.value,
                 action="DELETE STUDENT ERROR",
                 details=f"Student deletion failed. Error: {readable_error}",
-                created_by=authorized_user.id,
+                created_by=getattr(authorized_user, "id", None),
                 payload={
                     "error": readable_error,
                     "raw_error": error_msg,

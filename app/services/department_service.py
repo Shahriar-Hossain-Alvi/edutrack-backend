@@ -9,7 +9,7 @@ from app.schemas.department_schema import DepartmentCreateSchema, DepartmentOutS
 from sqlalchemy.exc import IntegrityError
 
 from app.schemas.user_schema import UserOutSchema
-from app.services.audit_logging_service import create_audit_log
+from app.services.audit_logging_service import create_audit_log_isolated
 
 
 class DepartmentService:
@@ -42,8 +42,8 @@ class DepartmentService:
             # refresh the object(get the new data)
             await db.refresh(new_department)
 
-            await create_audit_log(
-                db=db, request=request, level=LogLevel.INFO.value,
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.INFO.value,
                 action="CREATE DEPARTMENT SUCCCESS",
                 details=f"New Department created successfully. ID: {new_department.id}",
                 created_by=authorized_user.id
@@ -53,6 +53,7 @@ class DepartmentService:
                 "message": f"New Department created successfully. ID: {new_department.id}"
             }
         except IntegrityError as e:
+            await db.rollback()
             # generally the PostgreSQL's error message will be in e.orig.args[0]
             error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
                 e)
@@ -60,11 +61,11 @@ class DepartmentService:
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
 
-            await create_audit_log(
-                db=db, request=request, level=LogLevel.ERROR.value,
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.ERROR.value,
                 action="CREATE DEPARTMENT ERROR",
                 details=f"Error while creating new department: {readable_error}",
-                created_by=authorized_user.id,
+                created_by=getattr(authorized_user, "id", None),
                 payload={
                     "error": readable_error,
                     "raw_error": error_msg,
@@ -113,8 +114,8 @@ class DepartmentService:
             await db.commit()
             await db.refresh(department)
 
-            await create_audit_log(
-                db=db, request=request, level=LogLevel.INFO.value,
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.INFO.value,
                 action="UPDATE DEPARTMENT SUCCCESS",
                 details=f"Department: {department.department_name} updated",
                 created_by=authorized_user.id,
@@ -127,6 +128,7 @@ class DepartmentService:
                 "message": f"{department.department_name} department updated successfully. ID: {department.id}"
             }
         except IntegrityError as e:
+            await db.rollback()
             # generally the PostgreSQL's error message will be in e.orig.args[0]
             error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
                 e)
@@ -134,11 +136,11 @@ class DepartmentService:
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
 
-            await create_audit_log(
-                db=db, request=request, level=LogLevel.ERROR.value,
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.ERROR.value,
                 action="UPDATE DEPARTMENT ERROR",
                 details=f"Department update failed. Error: {readable_error}",
-                created_by=authorized_user.id,
+                created_by=getattr(authorized_user, "id", None),
                 payload={
                     "error": readable_error,
                     "raw_error": error_msg,
@@ -171,8 +173,8 @@ class DepartmentService:
 
             logger.success("Department deleted successfully")
 
-            await create_audit_log(
-                db=db, request=request, level=LogLevel.INFO.value,
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.INFO.value,
                 action="DELETE DEPARTMENT SUCCCESS",
                 details=f"Department: {department.department_name}, ID: {department.id} deleted",
                 created_by=authorized_user.id,
@@ -183,6 +185,7 @@ class DepartmentService:
 
             return {"message": f"{department.department_name} department deleted successfully"}
         except IntegrityError as e:
+            await db.rollback()
             # generally the PostgreSQL's error message will be in e.orig.args[0]
             error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
                 e)
@@ -190,11 +193,11 @@ class DepartmentService:
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
 
-            await create_audit_log(
-                db=db, request=request, level=LogLevel.ERROR.value,
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.ERROR.value,
                 action="DELETE DEPARTMENT ERROR",
                 details=f"Department deletion failed. Error: {readable_error}",
-                created_by=authorized_user.id,
+                created_by=getattr(authorized_user, "id", None),
                 payload={
                     "error": readable_error,
                     "raw_error": error_msg,

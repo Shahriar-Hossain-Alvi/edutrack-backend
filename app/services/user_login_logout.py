@@ -8,7 +8,7 @@ from app.core.integrity_error_parser import parse_integrity_error
 from app.models import User
 from app.core import settings
 from app.models.audit_log_model import LogLevel
-from app.services.audit_logging_service import create_audit_log
+from app.services.audit_logging_service import create_audit_log_isolated
 from sqlalchemy.exc import IntegrityError
 
 
@@ -50,8 +50,8 @@ async def login_user(
         )
         logger.success("Login successful")
 
-        await create_audit_log(
-            db=db, request=request, level="info", created_by=user.id,
+        await create_audit_log_isolated(
+            request=request, level="info", created_by=user.id,
             action="LOGIN ATTEMPT",
             details=f"User {user.username} logged in successfully"
         )
@@ -60,6 +60,7 @@ async def login_user(
         }
 
     except IntegrityError as e:
+        await db.rollback()
         logger.error(f"Error occurred while login: {e}")
         # generally the PostgreSQL's error message will be in e.orig.args[0]
         error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
@@ -69,8 +70,9 @@ async def login_user(
         readable_error = parse_integrity_error(error_msg)
         logger.error(f"Readable Error: {readable_error}")
 
-        await create_audit_log(
-            db=db, request=request, level=LogLevel.ERROR.value, created_by=user.id,
+        await create_audit_log_isolated(
+            request=request, level=LogLevel.ERROR.value, created_by=getattr(
+                user, "id", None),
             action="LOGIN ATTEMPT",
             details=f"Login failed for user {user.username}",
             payload={
@@ -97,8 +99,7 @@ async def logout_user(request: Request, response: Response, db: AsyncSession):
     except Exception as e:
         logger.error(f"Error occurred while logout: {e}")
 
-        await create_audit_log(
-            db=db,
+        await create_audit_log_isolated(
             request=request,
             level=LogLevel.ERROR.value,
             action="LOGOUT ATTEMPT",

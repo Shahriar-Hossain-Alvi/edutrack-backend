@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core import get_current_user
-from app.permissions.role_checks import ensure_admin
+from app.permissions.role_checks import ensure_admin, ensure_super_admin
 from app.services.user_service import UserService
 from app.db.db import get_db_session
 from app.schemas.user_schema import AllUsersWithDetailsResponseSchema, UserCreateSchema, UserOutSchema, UserUpdateSchemaByAdmin, UserUpdateSchemaByUser
@@ -18,13 +18,14 @@ router = APIRouter(
 @router.post("/register")
 async def register_user(
     user_data: UserCreateSchema,
+    request: Request,
     db: AsyncSession = Depends(get_db_session),
     # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_admin),
 ):
 
     try:
-        return await UserService.create_user(user_data, db)
+        return await UserService.create_user(user_data, request, db, authorized_user)
     except HTTPException:
         raise
     except Exception as e:
@@ -46,7 +47,8 @@ async def get_all_users(
     user_role: str | None = None,
     db: AsyncSession = Depends(get_db_session),
     # token_injection: None = Depends(inject_token),
-    authorized_user: UserOutSchema = Depends(ensure_admin),
+    authorized_user: UserOutSchema = Depends(
+        ensure_admin)
 ):
     try:
         users = await UserService.get_users(db, user_role)
@@ -79,13 +81,12 @@ async def get_single_user(
 async def update_single_user_by_admin(
     id: int,
     user_data: UserUpdateSchemaByAdmin,
-    # token_injection: None = Depends(inject_token),
-    authorized_user: UserOutSchema = Depends(ensure_admin),
-    # current_user: UserOutSchema = Depends(get_current_user),
+    request: Request,
     db: AsyncSession = Depends(get_db_session),
+    authorized_user: UserOutSchema = Depends(ensure_admin),
 ):
     try:
-        return await UserService.update_user_by_admin(db, id, user_data)
+        return await UserService.update_user_by_admin(id, user_data, request, db, authorized_user)
     except HTTPException:
         raise
     except Exception as e:
@@ -98,12 +99,13 @@ async def update_single_user_by_admin(
 async def update_single_user_by_self(
     id: int,
     user_data: UserUpdateSchemaByUser,
+    request: Request,
     db: AsyncSession = Depends(get_db_session),
     # token_injection: None = Depends(inject_token),
     current_user: UserOutSchema = Depends(get_current_user),
 ):
     try:
-        return await UserService.update_user_self(db, id, user_data, current_user)
+        return await UserService.update_user_self(id, user_data, request, db, current_user)
     except HTTPException:
         raise
     except Exception as e:
@@ -115,12 +117,13 @@ async def update_single_user_by_self(
 @router.delete("/{id}")
 async def delete_a_user(
     id: int,
+    request: Request,
     # token_injection: None = Depends(inject_token),
-    authorized_user: UserOutSchema = Depends(ensure_admin),
     db: AsyncSession = Depends(get_db_session),
+    authorized_user: UserOutSchema = Depends(ensure_admin),
 ):
     try:
-        return await UserService.delete_user(db, id)
+        return await UserService.delete_user(id, request, db, authorized_user)
     except HTTPException:
         raise
     except Exception as e:

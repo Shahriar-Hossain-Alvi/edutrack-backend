@@ -9,7 +9,7 @@ from app.models.teacher_model import Teacher
 from app.models.department_model import Department
 from app.schemas.teacher_schema import TeacherCreateSchema, TeacherUpdateByAdminSchema, TeacherUpdateSchema
 from app.schemas.user_schema import UserOutSchema
-from app.services.audit_logging_service import create_audit_log
+from app.services.audit_logging_service import create_audit_log_isolated
 from app.utils import check_existence
 from fastapi import HTTPException, Request, status
 from sqlalchemy.orm import joinedload, selectinload
@@ -66,8 +66,8 @@ class TeacherService:
             logger.success("Teacher created successfully")
 
             # DB Log
-            await create_audit_log(
-                db=db, request=request, level=LogLevel.INFO.value, created_by=authorized_user.id,
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.INFO.value, created_by=authorized_user.id,
                 action="CREATE TEACHER SUCCESS",
                 details=f"New teacher created. Teacher ID: {new_teacher.id}, User ID: {new_user.id}."
             )
@@ -76,6 +76,7 @@ class TeacherService:
                 "message": f"Teacher created successfully. Teacher ID: {new_teacher.id}, User ID: {new_user.id}"
             }
         except IntegrityError as e:
+            await db.rollback()
             logger.error(f"Integrity error while creating teacher: {e}")
             # generally the PostgreSQL's error message will be in e.orig.args[0]
             error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
@@ -86,8 +87,9 @@ class TeacherService:
             logger.error(readable_error)
 
             # DB Log
-            await create_audit_log(
-                db=db, request=request, level=LogLevel.ERROR.value, created_by=authorized_user.id,
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.ERROR.value, created_by=getattr(
+                    authorized_user, "id", None),
                 action="CREATE TEACHER DB ERROR",
                 details=f"Integrity error: {readable_error}",
                 payload={
@@ -157,8 +159,8 @@ class TeacherService:
             await db.refresh(teacher)
             logger.success("Teacher updated successfully")
 
-            await create_audit_log(
-                db=db, request=request, level=LogLevel.INFO.value,
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.INFO.value,
                 action="UPDATE TEACHER SUCCCESS",
                 details=f"Teacher: {teacher.name} updated. Teacher ID: {teacher.id} updated",
                 created_by=authorized_user.id,
@@ -171,6 +173,7 @@ class TeacherService:
                 "message": f"Teacher updated successfully. Teacher ID: {teacher.id}"
             }
         except IntegrityError as e:
+            await db.rollback()
             logger.error(f"Integrity error while updating teacher: {e}")
             # generally the PostgreSQL's error message will be in e.orig.args[0]
             error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
@@ -180,11 +183,11 @@ class TeacherService:
             readable_error = parse_integrity_error(error_msg)
             logger.error(readable_error)
 
-            await create_audit_log(
-                db=db, request=request, level=LogLevel.ERROR.value,
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.ERROR.value,
                 action="UPDATE TEACHER ERROR",
                 details=f"Teacher update failed. Error: {readable_error}",
-                created_by=authorized_user.id,
+                created_by=getattr(authorized_user, "id", None),
                 payload={
                     "error": readable_error,
                     "raw_error": error_msg,
@@ -221,8 +224,8 @@ class TeacherService:
             await db.commit()
             await db.refresh(teacher)
 
-            await create_audit_log(
-                db=db, request=request, level=LogLevel.INFO.value,
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.INFO.value,
                 action="UPDATE TEACHER SUCCCESS",
                 details=f"Teacher: {teacher.name}, ID: {teacher.id} updated",
                 created_by=current_user.id,
@@ -233,6 +236,7 @@ class TeacherService:
 
             return teacher
         except IntegrityError as e:
+            await db.rollback()
             # generally the PostgreSQL's error message will be in e.orig.args[0]
             error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
                 e)
@@ -240,11 +244,11 @@ class TeacherService:
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
 
-            await create_audit_log(
-                db=db, request=request, level=LogLevel.ERROR.value,
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.ERROR.value,
                 action="UPDATE TEACHER ERROR",
                 details=f"Teacher update failed. Error: {readable_error}",
-                created_by=current_user.id,
+                created_by=getattr(current_user, "id", None),
                 payload={
                     "error": readable_error,
                     "raw_error": error_msg,
@@ -273,8 +277,8 @@ class TeacherService:
             await db.delete(teacher)
             await db.commit()
 
-            await create_audit_log(
-                db=db, request=request, level=LogLevel.INFO.value,
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.INFO.value,
                 action="DELETE TEACHER SUCCCESS",
                 details=f"Teacher: {teacher.name}, ID: {teacher.id} deleted",
                 created_by=authorized_user.id,
@@ -285,6 +289,7 @@ class TeacherService:
 
             return {"message": f"Teacher: {teacher.name} deleted successfully"}
         except IntegrityError as e:
+            await db.rollback()
             # generally the PostgreSQL's error message will be in e.orig.args[0]
             error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
                 e)
@@ -292,11 +297,11 @@ class TeacherService:
             # send the error message to the parser
             readable_error = parse_integrity_error(error_msg)
 
-            await create_audit_log(
-                db=db, request=request, level=LogLevel.ERROR.value,
+            await create_audit_log_isolated(
+                request=request, level=LogLevel.ERROR.value,
                 action="DELETE TEACHER ERROR",
                 details=f"Teacher deletion failed. Error: {readable_error}",
-                created_by=authorized_user.id,
+                created_by=getattr(authorized_user, "id", None),
                 payload={
                     "error": readable_error,
                     "raw_error": error_msg,
