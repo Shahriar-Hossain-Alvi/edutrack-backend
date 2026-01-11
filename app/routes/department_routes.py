@@ -1,14 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from loguru import logger
 from app.core.authenticated_user import get_current_user
+from app.core.exceptions import DomainIntegrityError
 from app.permissions.role_checks import ensure_admin, ensure_super_admin
 from app.services.department_service import DepartmentService
-from app.models.user_model import UserRole
 from app.schemas.department_schema import DepartmentCreateSchema, DepartmentOutSchema, DepartmentUpdateSchema
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.db import get_db_session
 from app.schemas.user_schema import UserOutSchema
-from app.utils.token_injector import inject_token
 
 
 router = APIRouter(
@@ -26,13 +25,28 @@ async def create_new_department(
     db: AsyncSession = Depends(get_db_session),
     authorized_user: UserOutSchema = Depends(ensure_admin),
 ):
+    # attach action
+    request.state.action = "CREATE DEPARTMENT"
 
     try:
-        return await DepartmentService.create_department(department_data, request, db, authorized_user)
+        return await DepartmentService.create_department(department_data, db, request)
+    except DomainIntegrityError as de:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=de.error_message
+        )
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.critical(f"Create department Unexpected Error: {e}")
+
+        # attach audit payload
+        if request:
+            request.state.audit_payload = {
+                "raw_error": str(e),
+                "exception_type": type(e).__name__,
+            }
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 # get all departments
@@ -77,13 +91,27 @@ async def update_single_department(
     db: AsyncSession = Depends(get_db_session),
     authorized_user: UserOutSchema = Depends(ensure_admin),
 ):
+    # attach action
+    request.state.action = "UPDATE DEPARTMENT"
 
     try:
-        return await DepartmentService.update_department(id, department_data, request, db, authorized_user)
+        return await DepartmentService.update_department(id, department_data, db, request)
+    except DomainIntegrityError as de:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=de.error_message
+        )
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Error occurred while updating department:", e)
+        logger.error("Update department Unexpected Error:", e)
+
+        # attach audit payload
+        if request:
+            request.state.audit_payload = {
+                "raw_error": str(e),
+                "exception_type": type(e).__name__,
+            }
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -93,12 +121,28 @@ async def delete_single_department(
     id: int,
     request: Request,
     db: AsyncSession = Depends(get_db_session),
-    # token_injection: None = Depends(inject_token),
     authorized_user: UserOutSchema = Depends(ensure_super_admin),
 ):
+    # attach action
+    request.state.action = "DELETE DEPARTMENT"
+
     try:
-        return await DepartmentService.delete_department(id, request, db, authorized_user)
+        return await DepartmentService.delete_department(id, db, request)
+    except DomainIntegrityError as de:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=de.error_message
+        )
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.critical(f"Delete department Unexpected Error: {e}")
+
+        # attach audit payload
+        if request:
+            request.state.audit_payload = {
+                "raw_error": str(e),
+                "exception_type": type(e).__name__,
+            }
+
+        raise HTTPException(status_code=500, detail="Internal Server Error")

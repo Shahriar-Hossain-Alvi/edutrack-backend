@@ -1,13 +1,13 @@
+from typing import Any
 from fastapi import HTTPException, Request, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from app.core.exceptions import DomainIntegrityError
 from app.core.integrity_error_parser import parse_integrity_error
 from app.models import Department
-from app.models.audit_log_model import LogLevel
-from app.schemas.department_schema import DepartmentCreateSchema, DepartmentOutSchema, DepartmentUpdateSchema
+from app.schemas.department_schema import DepartmentCreateSchema, DepartmentUpdateSchema
 from sqlalchemy.exc import IntegrityError
-from app.schemas.user_schema import UserOutSchema
 
 
 class DepartmentService:
@@ -15,9 +15,8 @@ class DepartmentService:
     @staticmethod
     async def create_department(
         department_data: DepartmentCreateSchema,
-        request: Request,
         db: AsyncSession,
-        authorized_user: UserOutSchema
+        request: Request | None = None,
     ):
         lowercase_department_name = department_data.department_name.lower().strip()
 
@@ -37,42 +36,41 @@ class DepartmentService:
 
             db.add(new_department)  # add the new_department to db(session)
             await db.commit()
-            # refresh the object(get the new data)
             await db.refresh(new_department)
 
-            # await create_audit_log_isolated(
-            #     request=request, level=LogLevel.INFO.value,
-            #     action="CREATE DEPARTMENT SUCCCESS",
-            #     details=f"New Department created successfully. ID: {new_department.id}",
-            #     created_by=authorized_user.id
-            # )
-
+            logger.success("New department created successfully")
             return {
                 "message": f"New Department created successfully. ID: {new_department.id}"
             }
         except IntegrityError as e:
+            # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state to save the Audit Log
             await db.rollback()
-            # generally the PostgreSQL's error message will be in e.orig.args[0]
-            error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
-                e)
 
-            # send the error message to the parser
-            readable_error = parse_integrity_error(error_msg)
+            # generally the PostgreSQL's error message will be in e.orig.args
+            raw_error_message = str(e.orig) if e.orig else str(e)
+            readable_error = parse_integrity_error(raw_error_message)
 
-            # await create_audit_log_isolated(
-            #     request=request, level=LogLevel.ERROR.value,
-            #     action="CREATE DEPARTMENT ERROR",
-            #     details=f"Error while creating new department: {readable_error}",
-            #     created_by=getattr(authorized_user, "id", None),
-            #     payload={
-            #         "error": readable_error,
-            #         "raw_error": error_msg,
-            #         "payload_data": department_data.model_dump()
-            #     }
-            # )
+            logger.error(f"Integrity error while creating department: {e}")
+            logger.error(f"Readable Error: {readable_error}")
 
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
+            # attach audit payload safely
+            if request:
+                payload: dict[str, Any] = {
+                    "raw_error": raw_error_message,
+                    "readable_error": readable_error,
+                }
+
+                if department_data:
+                    payload["data"] = department_data.model_dump(
+                        mode="json",
+                        exclude_unset=True
+                    )
+
+                request.state.audit_payload = payload
+
+            raise DomainIntegrityError(
+                error_message=readable_error, raw_error=raw_error_message
+            )
 
     @staticmethod
     async def get_departments(db: AsyncSession):
@@ -92,9 +90,8 @@ class DepartmentService:
     async def update_department(
         department_id: int,
         department_data: DepartmentUpdateSchema,
-        request: Request,
         db: AsyncSession,
-        authorized_user: UserOutSchema
+        request: Request | None = None,
     ):
         statement = select(Department).where(Department.id == department_id)
         result = await db.execute(statement)
@@ -112,49 +109,45 @@ class DepartmentService:
             await db.commit()
             await db.refresh(department)
 
-            # await create_audit_log_isolated(
-            #     request=request, level=LogLevel.INFO.value,
-            #     action="UPDATE DEPARTMENT SUCCCESS",
-            #     details=f"Department: {department.department_name} updated",
-            #     created_by=authorized_user.id,
-            #     payload={
-            #         "payload_data": department_data.model_dump(exclude_unset=True)
-            #     }
-            # )
-
+            logger.success("Department updated successfully")
             return {
                 "message": f"{department.department_name} department updated successfully. ID: {department.id}"
             }
         except IntegrityError as e:
+            # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state to save the Audit Log
             await db.rollback()
-            # generally the PostgreSQL's error message will be in e.orig.args[0]
-            error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
-                e)
 
-            # send the error message to the parser
-            readable_error = parse_integrity_error(error_msg)
+            # generally the PostgreSQL's error message will be in e.orig.args
+            raw_error_message = str(e.orig) if e.orig else str(e)
+            readable_error = parse_integrity_error(raw_error_message)
 
-            # await create_audit_log_isolated(
-            #     request=request, level=LogLevel.ERROR.value,
-            #     action="UPDATE DEPARTMENT ERROR",
-            #     details=f"Department update failed. Error: {readable_error}",
-            #     created_by=getattr(authorized_user, "id", None),
-            #     payload={
-            #         "error": readable_error,
-            #         "raw_error": error_msg,
-            #         "payload_data": department_data.model_dump()
-            #     }
-            # )
+            logger.error(f"Integrity error while updating department: {e}")
+            logger.error(f"Readable Error: {readable_error}")
 
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
+            # attach audit payload safely
+            if request:
+                payload: dict[str, Any] = {
+                    "raw_error": raw_error_message,
+                    "readable_error": readable_error,
+                }
+
+                if department_data:
+                    payload["data"] = department_data.model_dump(
+                        mode="json",
+                        exclude_unset=True
+                    )
+
+                request.state.audit_payload = payload
+
+            raise DomainIntegrityError(
+                error_message=readable_error, raw_error=raw_error_message
+            )
 
     @staticmethod
     async def delete_department(
         department_id: int,
-        request: Request,
         db: AsyncSession,
-        authorized_user: UserOutSchema
+        request: Request | None = None
     ):
 
         statement = select(Department).where(Department.id == department_id)
@@ -171,37 +164,27 @@ class DepartmentService:
 
             logger.success("Department deleted successfully")
 
-            # await create_audit_log_isolated(
-            #     request=request, level=LogLevel.INFO.value,
-            #     action="DELETE DEPARTMENT SUCCCESS",
-            #     details=f"Department: {department.department_name}, ID: {department.id} deleted",
-            #     created_by=authorized_user.id,
-            #     payload={
-            #         "payload_data": department_id
-            #     }
-            # )
-
             return {"message": f"{department.department_name} department deleted successfully"}
         except IntegrityError as e:
+            # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state to save the Audit Log
             await db.rollback()
-            # generally the PostgreSQL's error message will be in e.orig.args[0]
-            error_msg = str(e.orig.args[0]) if e.orig.args else str(  # type: ignore
-                e)
 
-            # send the error message to the parser
-            readable_error = parse_integrity_error(error_msg)
+            # generally the PostgreSQL's error message will be in e.orig.args
+            raw_error_message = str(e.orig) if e.orig else str(e)
+            readable_error = parse_integrity_error(raw_error_message)
 
-            # await create_audit_log_isolated(
-            #     request=request, level=LogLevel.ERROR.value,
-            #     action="DELETE DEPARTMENT ERROR",
-            #     details=f"Department deletion failed. Error: {readable_error}",
-            #     created_by=getattr(authorized_user, "id", None),
-            #     payload={
-            #         "error": readable_error,
-            #         "raw_error": error_msg,
-            #         "payload_data": department_id
-            #     }
-            # )
+            logger.error(f"Integrity error while deleting department: {e}")
+            logger.error(f"Readable Error: {readable_error}")
 
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail=readable_error)
+            # attach audit payload safely
+            if request:
+                payload: dict[str, Any] = {
+                    "raw_error": raw_error_message,
+                    "readable_error": readable_error,
+                }
+
+                request.state.audit_payload = payload
+
+            raise DomainIntegrityError(
+                error_message=readable_error, raw_error=raw_error_message
+            )
