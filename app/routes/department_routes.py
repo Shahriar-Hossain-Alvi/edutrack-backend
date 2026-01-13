@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from loguru import logger
 from app.core.authenticated_user import get_current_user
 from app.core.exceptions import DomainIntegrityError
-from app.permissions.role_checks import ensure_admin, ensure_super_admin
+from app.permissions import ensure_roles
 from app.services.department_service import DepartmentService
 from app.schemas.department_schema import DepartmentCreateSchema, DepartmentOutSchema, DepartmentUpdateSchema
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,7 +23,8 @@ async def create_new_department(
     department_data: DepartmentCreateSchema,
     request: Request,
     db: AsyncSession = Depends(get_db_session),
-    authorized_user: UserOutSchema = Depends(ensure_admin),
+    authorized_user: UserOutSchema = Depends(
+        ensure_roles(["super_admin", "admin"])),
 ):
     # attach action
     request.state.action = "CREATE DEPARTMENT"
@@ -52,7 +53,6 @@ async def create_new_department(
 # get all departments
 @router.get("/", response_model=list[DepartmentOutSchema])
 async def get_all_departments(
-    # token_injection: None = Depends(inject_token),
     current_user: UserOutSchema = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session),
 ):
@@ -70,7 +70,6 @@ async def get_all_departments(
 async def get_single_department(
     id: int,
     db: AsyncSession = Depends(get_db_session),
-    # token_injection: None = Depends(inject_token),
     current_user: UserOutSchema = Depends(get_current_user)
 ):
 
@@ -89,7 +88,8 @@ async def update_single_department(
     department_data: DepartmentUpdateSchema,
     request: Request,
     db: AsyncSession = Depends(get_db_session),
-    authorized_user: UserOutSchema = Depends(ensure_admin),
+    authorized_user: UserOutSchema = Depends(
+        ensure_roles(["super_admin", "admin"])),
 ):
     # attach action
     request.state.action = "UPDATE DEPARTMENT"
@@ -121,7 +121,7 @@ async def delete_single_department(
     id: int,
     request: Request,
     db: AsyncSession = Depends(get_db_session),
-    authorized_user: UserOutSchema = Depends(ensure_super_admin),
+    authorized_user: UserOutSchema = Depends(ensure_roles(["super_admin"])),
 ):
     # attach action
     request.state.action = "DELETE DEPARTMENT"

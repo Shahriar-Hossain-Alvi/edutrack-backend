@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.authenticated_user import get_current_user
 from app.db.db import get_db_session
-from app.permissions.role_checks import ensure_admin, ensure_admin_or_teacher
+from app.permissions import ensure_roles
 from app.schemas.subject_offering_schema import SubjectOfferingCreateSchema, SubjectOfferingResponseSchema, SubjectOfferingUpdateSchema
 from app.schemas.subject_schema import SubjectOutSchema
 from app.schemas.user_schema import UserOutSchema
@@ -20,7 +19,8 @@ router = APIRouter(
 async def create_new_subject_offering(
     sub_off_data: SubjectOfferingCreateSchema,
     # token_injection: None = Depends(inject_token),
-    authorized_user: UserOutSchema = Depends(ensure_admin),
+    authorized_user: UserOutSchema = Depends(
+        ensure_roles(["super_admin", "admin"])),
     db: AsyncSession = Depends(get_db_session),
 ):
     try:
@@ -38,7 +38,8 @@ async def get_offered_subjects_for_marking(
     semester_id: int,
     department_id: int,
     # token_injection: None = Depends(inject_token),
-    authorized_user: UserOutSchema = Depends(ensure_admin_or_teacher),
+    authorized_user: UserOutSchema = Depends(
+        ensure_roles(["super_admin", "admin", "teacher"])),
     db: AsyncSession = Depends(get_db_session),
 ):
     try:
@@ -54,7 +55,8 @@ async def get_offered_subjects_for_marking(
 async def get_single_subject_offering(
     subject_offering_id: int,
     # token_injection: None = Depends(inject_token),
-    authorized_user: UserOutSchema = Depends(ensure_admin_or_teacher),
+    authorized_user: UserOutSchema = Depends(
+        ensure_roles(["super_admin", "admin", "teacher"])),
     db: AsyncSession = Depends(get_db_session),
 ):
     try:
@@ -69,7 +71,8 @@ async def get_single_subject_offering(
 @router.get("/", response_model=list[SubjectOfferingResponseSchema])
 async def get_all_subject_offerings(
         # token_injection: None = Depends(inject_token),
-        authorized_user: UserOutSchema = Depends(ensure_admin),
+        authorized_user: UserOutSchema = Depends(
+            ensure_roles(["super_admin", "admin"])),
         db: AsyncSession = Depends(get_db_session)
 ):
     try:
@@ -86,7 +89,8 @@ async def update_a_subject_offering(
     subject_offering_id: int,
     update_data: SubjectOfferingUpdateSchema,
     # token_injection: None = Depends(inject_token),
-    authorized_user: UserOutSchema = Depends(ensure_admin),
+    authorized_user: UserOutSchema = Depends(
+        ensure_roles(["super_admin", "admin"])),
     db: AsyncSession = Depends(get_db_session)
 ):
     try:
@@ -102,7 +106,7 @@ async def update_a_subject_offering(
 async def delete_a_subject_offering(
     subject_offering_id: int,
     # token_injection: None = Depends(inject_token),
-    authorized_user: UserOutSchema = Depends(ensure_admin),
+    authorized_user: UserOutSchema = Depends(ensure_roles(["super_admin"])),
     db: AsyncSession = Depends(get_db_session)
 ):
     try:

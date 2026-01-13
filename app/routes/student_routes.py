@@ -5,7 +5,7 @@ from app.core.authenticated_user import get_current_user
 from app.core.exceptions import DomainIntegrityError
 from app.services.student_service import StudentService
 from app.db.db import get_db_session
-from app.permissions.role_checks import ensure_admin_or_teacher, ensure_admin, ensure_super_admin
+from app.permissions import ensure_roles
 from app.schemas.student_schema import StudentCreateSchema, StudentResponseSchemaNested, StudentUpdateByAdminSchema, StudentUpdateSchema
 from app.schemas.user_schema import UserOutSchema
 
@@ -21,7 +21,8 @@ async def create_student_record(
         student_data: StudentCreateSchema,
         request: Request,
         db: AsyncSession = Depends(get_db_session),
-        authorized_user: UserOutSchema = Depends(ensure_admin),
+        authorized_user: UserOutSchema = Depends(
+            ensure_roles(["super_admin", "admin"])),
 ):
     # attach action
     request.state.action = "CREATE STUDENT"
@@ -61,7 +62,8 @@ async def create_student_record(
     response_model=list[StudentResponseSchemaNested]
 )
 async def get_all_students(
-    authorized_user: UserOutSchema = Depends(ensure_admin_or_teacher),
+    authorized_user: UserOutSchema = Depends(
+        ensure_roles(["super_admin", "admin", "teacher"])),
     db: AsyncSession = Depends(get_db_session),
 ):
 
@@ -138,7 +140,8 @@ async def update_single_student_by_admin(
     student_data: StudentUpdateByAdminSchema,
     request: Request,
     db: AsyncSession = Depends(get_db_session),
-    authorized_user: UserOutSchema = Depends(ensure_admin)
+    authorized_user: UserOutSchema = Depends(
+        ensure_roles(["super_admin", "admin"]))
 ):
     # attach action
     request.state.action = "UPDATE STUDENT BY ADMIN"
@@ -171,7 +174,7 @@ async def delete_single_student(
     id: int,
     request: Request,
     db: AsyncSession = Depends(get_db_session),
-    authorized_user: UserOutSchema = Depends(ensure_super_admin)
+    authorized_user: UserOutSchema = Depends(ensure_roles(["super_admin"]))
 ):
     # attach action
     request.state.action = "DELETE STUDENT"

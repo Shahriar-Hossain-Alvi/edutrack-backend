@@ -3,7 +3,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.authenticated_user import get_current_user
 from app.core.exceptions import DomainIntegrityError
-from app.permissions.role_checks import ensure_admin_or_teacher, ensure_admin, ensure_super_admin
+from app.permissions import ensure_roles
 from app.db.db import get_db_session
 from app.schemas.teacher_schema import TeacherCreateSchema, TeacherResponseSchema, TeacherUpdateByAdminSchema, TeacherUpdateSchema, TeachersDepartmentWiseGroupResponse
 from app.schemas.user_schema import UserOutSchema
@@ -19,7 +19,8 @@ async def create_teacher_record(
     request: Request,
     # token_injection: None = Depends(inject_token),
     db: AsyncSession = Depends(get_db_session),
-    authorized_user: UserOutSchema = Depends(ensure_admin),
+    authorized_user: UserOutSchema = Depends(
+        ensure_roles(["super_admin", "admin"]))
 ):
     # attach action
     request.state.action = "CREATE TEACHER"
@@ -51,7 +52,8 @@ async def create_teacher_record(
 @router.get("/", response_model=list[TeacherResponseSchema])
 async def get_all_teachers(
     # token_injection: None = Depends(inject_token),
-    authorized_user: UserOutSchema = Depends(ensure_admin_or_teacher),
+    authorized_user: UserOutSchema = Depends(
+        ensure_roles(["super_admin", "admin", "teacher"])),
     db: AsyncSession = Depends(get_db_session),
 ):
 
@@ -140,7 +142,8 @@ async def update_teacher_by_admin(
         teacher_update_data: TeacherUpdateByAdminSchema,
         request: Request,
         db: AsyncSession = Depends(get_db_session),
-        authorized_user: UserOutSchema = Depends(ensure_admin)
+        authorized_user: UserOutSchema = Depends(
+            ensure_roles(["super_admin", "admin"]))
 ):
     # attach action
     request.state.action = "UPDATE TEACHER BY ADMIN"
@@ -176,7 +179,7 @@ async def delete_a_teacher(
     id: int,
     request: Request,
     db: AsyncSession = Depends(get_db_session),
-    authorized_user: UserOutSchema = Depends(ensure_super_admin),
+    authorized_user: UserOutSchema = Depends(ensure_roles(["super_admin"]))
 ):
     # attach action
     request.state.action = "DELETE TEACHER"
