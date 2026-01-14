@@ -2,6 +2,8 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 import re
 
+from pydantic_partial import create_partial_model
+
 
 class SubjectBaseSchema(BaseModel):
     subject_title: str = Field(..., max_length=100, examples=[
@@ -26,15 +28,22 @@ class SubjectCreateSchema(SubjectBaseSchema):
     pass
 
 
-class SubjectOutSchema(SubjectBaseSchema):
+class MinimalSemesterResponseSchema(BaseModel):
+    semester_name: str
+    semester_number: int
+
+
+class SubjectWithSemesterResponseSchema(SubjectBaseSchema):
     id: int
     created_at: datetime
     updated_at: datetime
+    semester: MinimalSemesterResponseSchema
+
     model_config = ConfigDict(from_attributes=True)
 
 
-class SubjectUpdateSchema(BaseModel):
-    subject_title: str | None = None
-    subject_code: str | None = None
-    credits: float | None = None
-    semester_id: int | None = None
+_Partial_Subject = create_partial_model(SubjectBaseSchema)
+
+
+class SubjectUpdateSchema(_Partial_Subject):
+    pass

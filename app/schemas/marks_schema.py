@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 from app.models.subject_model import Subject
-from app.schemas.subject_schema import SubjectOutSchema
+from app.schemas.subject_schema import MinimalSemesterResponseSchema
 from datetime import datetime
 from app.models import ResultStatus
 
@@ -51,7 +51,7 @@ class PopulatedMarksResponseSchema(MarksBaseSchema):
     id: int
     total_mark: float
     GPA: float
-    subject: SubjectOutSchema
+    subject: MinimalSemesterResponseSchema
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)

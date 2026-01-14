@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.db import get_db_session
 from app.permissions import ensure_roles
 from app.schemas.subject_offering_schema import SubjectOfferingCreateSchema, SubjectOfferingResponseSchema, SubjectOfferingUpdateSchema
-from app.schemas.subject_schema import SubjectOutSchema
+from app.schemas.subject_schema import MinimalSemesterResponseSchema
 from app.schemas.user_schema import UserOutSchema
 from app.services.subject_offering_service import SubjectOfferingService
 from app.utils.token_injector import inject_token
@@ -33,7 +33,7 @@ async def create_new_subject_offering(
 
 
 # get offered subjects list for marking (Admin=All subjects, Teacher=subjects they teach)
-@router.get("/offered_subjects", response_model=list[SubjectOutSchema])
+@router.get("/offered_subjects", response_model=list[MinimalSemesterResponseSchema])
 async def get_offered_subjects_for_marking(
     semester_id: int,
     department_id: int,
