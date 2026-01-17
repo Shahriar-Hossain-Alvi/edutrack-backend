@@ -66,7 +66,7 @@ class TeacherService:
             logger.success("Teacher created successfully")
 
             return {
-                "message": f"Teacher created successfully. Teacher ID: {new_teacher.id}, User ID: {new_user.id}"
+                "message": f"Teacher created successfully. Name: {new_teacher.name}, Teacher ID: {new_teacher.id}, User ID: {new_user.id}"
             }
         except IntegrityError as e:
             # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state to save the Audit Log

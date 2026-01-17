@@ -1,6 +1,5 @@
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict
-
 from app.schemas.subject_schema import SubjectBaseSchema
 
 

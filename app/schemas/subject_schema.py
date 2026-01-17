@@ -12,6 +12,7 @@ class SubjectBaseSchema(BaseModel):
                               "CSE-123", "CSE-123456", "SWE-1234", "SWE-12345"])
     credits: float = Field(..., examples=[1.5, 3.0])
     semester_id: int
+    is_general: bool = False
 
     @field_validator("subject_code")
     @classmethod
