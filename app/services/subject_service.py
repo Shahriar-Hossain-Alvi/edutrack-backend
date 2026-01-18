@@ -1,7 +1,7 @@
 from typing import Any
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import and_, select, or_
+from sqlalchemy import and_, asc, desc, select, or_
 from app.core.exceptions import DomainIntegrityError
 from app.core.integrity_error_parser import parse_integrity_error
 from app.models.subject_model import Subject
@@ -82,10 +82,17 @@ class SubjectService:
         db: AsyncSession,
         subject_credits: float | None = None,
         semester_id: int | None = None,
-        search: str | None = None
+        search: str | None = None,
+        order_by_filter: str | None = None
     ):
         query = select(Subject).options(selectinload(
-            Subject.semester)).order_by(Subject.id)
+            Subject.semester))
+
+        if order_by_filter == "asc":
+            query = query.order_by(asc(Subject.id))
+
+        if order_by_filter == "desc":
+            query = query.order_by(desc(Subject.id))
 
         # Search by credits
         if subject_credits is not None:

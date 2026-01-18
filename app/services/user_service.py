@@ -1,10 +1,11 @@
 from typing import Any
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import asc, desc, select, or_
 from app.core.exceptions import DomainIntegrityError
 from app.core.integrity_error_parser import parse_integrity_error
 from app.models import User
+from app.models.department_model import Department
 from app.models.student_model import Student
 from app.models.teacher_model import Teacher
 from app.schemas.user_schema import UserCreateSchema, UserOutSchema, UserUpdateSchemaByAdmin, UserPasswordUpdateSchema
@@ -90,7 +91,9 @@ class UserService:
     @staticmethod
     async def get_users(
         db: AsyncSession,
-        user_role: str | None = None
+        user_role: str | None = None,
+        department_search: str | None = None,
+        order_by_filter: str | None = None
     ):
         query = (
             select(User)
@@ -102,10 +105,26 @@ class UserService:
                 selectinload(User.student).selectinload(Student.department),
                 selectinload(User.student).selectinload(Student.semester),
             )
-        ).order_by(User.id)
+        )
 
         if user_role:
             query = query.where(User.role == user_role)
+
+        if department_search is not None and department_search != "":
+            query = query.where(
+                or_(
+                    User.student.has(Student.department.has(
+                        Department.department_name.ilike(f"%{department_search}%"))),
+                    User.teacher.has(Teacher.department.has(
+                        Department.department_name.ilike(f"%{department_search}%"))),
+                )
+            )
+
+        if order_by_filter == "asc":
+            query = query.order_by(asc(User.id))
+
+        if order_by_filter == "desc":
+            query = query.order_by(desc(User.id))
 
         result = await db.execute(query)
         all_users = result.scalars().unique().all()  # unique

@@ -28,12 +28,7 @@ async def create_student_record(
     request.state.action = "CREATE STUDENT"
 
     try:
-        result = await StudentService.create_student(student_data, db, request)
-
-        logger.success("Student created successfully FROM ROUTER")
-        return {
-            "message": f"Student created successfully. Student ID: {result.id}, User ID: {result.user_id}"
-        }
+        return await StudentService.create_student(student_data, db, request)
     except DomainIntegrityError as de:
         # DB Log
         logger.error(f"Student created failed FROM ROUTER: {de}")

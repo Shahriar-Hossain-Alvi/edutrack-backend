@@ -60,12 +60,14 @@ async def get_logged_in_user(
 @router.get("/", response_model=list[AllUsersWithDetailsResponseSchema])
 async def get_all_users(
     user_role: str | None = None,
+    department_search: str | None = None,
+    order_by_filter: str | None = None,
     db: AsyncSession = Depends(get_db_session),
     authorized_user: UserOutSchema = Depends(
         ensure_roles(["super_admin", "admin"]))
 ):
     try:
-        users = await UserService.get_users(db, user_role)
+        users = await UserService.get_users(db, user_role, department_search, order_by_filter)
         return users
     except HTTPException:
         raise

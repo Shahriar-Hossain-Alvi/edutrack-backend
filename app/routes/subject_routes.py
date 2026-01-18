@@ -56,11 +56,12 @@ async def get_all_subjects(
         db: AsyncSession = Depends(get_db_session),
         subject_credits: float | None = None,
         semester_id: int | None = None,
-        search: str | None = None
+        search: str | None = None,
+        order_by_filter: str | None = None
 ):
 
     try:
-        return await SubjectService.get_subjects(db, subject_credits, semester_id, search)
+        return await SubjectService.get_subjects(db, subject_credits, semester_id, search, order_by_filter)
     except HTTPException:
         raise
     except Exception as e:

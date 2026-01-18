@@ -70,7 +70,9 @@ class StudentService:
 
             logger.success("New student created successfully")
 
-            return new_student
+            return {
+                "message": f"Student created successfully. Name: {new_student.name}, Student ID: {new_student.id}, User ID: {new_student.user_id}"
+            }
         except IntegrityError as e:
             # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state to save the Audit Log
             await db.rollback()
