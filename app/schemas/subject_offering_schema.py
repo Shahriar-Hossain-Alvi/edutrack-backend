@@ -51,11 +51,14 @@ class SubjectOfferingTaughtByResponseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class AllSubjectOfferingsResponseSchema(SubjectOfferingBase):
+class AllSubjectOfferingsResponseSchema(BaseModel):
     id: int
+    taught_by_id: int | None
+    subject_id: int
+    department_id: int
     created_at: datetime
     updated_at: datetime
-    taught_by: SubjectOfferingTaughtByResponseSchema
+    taught_by: SubjectOfferingTaughtByResponseSchema | None
     department: SubjectOfferingDepartmentResponseSchema
     subject: SubjectOfferingSubjectResponseSchema
 

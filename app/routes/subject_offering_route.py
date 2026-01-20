@@ -54,12 +54,15 @@ async def create_new_subject_offering(
             )
 async def get_all_subject_offerings(
     request: Request,
+    order_by_filter: str | None = None,
+    filter_by_department: int | None = None,
+    search: str | None = None,
     authorized_user: UserOutSchema = Depends(
         ensure_roles(["super_admin", "admin"])),
     db: AsyncSession = Depends(get_db_session)
 ):
     try:
-        return await SubjectOfferingService.get_subject_offerings(db)
+        return await SubjectOfferingService.get_subject_offerings(db, order_by_filter, filter_by_department, search)
     except DomainIntegrityError as de:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -68,7 +71,7 @@ async def get_all_subject_offerings(
     except HTTPException:
         raise
     except Exception as e:
-        logger.critical(f"Create subject offering unexpected Error: {e}")
+        logger.critical(f"Get subject offering unexpected Error: {e}")
 
         # attach audit payload
         if request:

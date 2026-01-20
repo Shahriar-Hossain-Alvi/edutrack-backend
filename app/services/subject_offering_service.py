@@ -1,6 +1,7 @@
+import time
 from typing import Any
 from loguru import logger
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, asc, desc, func, or_, select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import DomainIntegrityError
@@ -127,16 +128,41 @@ class SubjectOfferingService:
     # get all subject offerings
 
     @staticmethod
-    async def get_subject_offerings(db: AsyncSession):
-        try:
-            query = select(SubjectOfferings).options(
-                selectinload(SubjectOfferings.department),
-                selectinload(SubjectOfferings.subject).selectinload(
-                    Subject.semester),
-                selectinload(SubjectOfferings.taught_by).selectinload(
-                    Teacher.department)
+    async def get_subject_offerings(
+        db: AsyncSession,
+        order_by_filter: str | None = None,
+        filter_by_department: int | None = None,
+        search: str | None = None
+    ):
+        query = select(SubjectOfferings).options(
+            selectinload(SubjectOfferings.department),
+            selectinload(SubjectOfferings.subject).selectinload(
+                Subject.semester),
+            selectinload(SubjectOfferings.taught_by).selectinload(
+                Teacher.department)
+        )
+
+        if order_by_filter == "asc":
+            query = query.order_by(asc(SubjectOfferings.id))
+
+        if order_by_filter == "desc":
+            query = query.order_by(desc(SubjectOfferings.id))
+
+        if filter_by_department is not None:
+            query = query.where(
+                SubjectOfferings.department_id == filter_by_department)
+
+            # Search by subject title or code
+        if search:
+            search_filter = f"%{search}%"
+            query = query.where(
+                or_(
+                    SubjectOfferings.taught_by.has(
+                        Teacher.name.ilike(search_filter))
+                )
             )
 
+        try:
             result = await db.execute(query)
             subject_offerings = result.scalars().unique().all()
 
@@ -177,7 +203,7 @@ class SubjectOfferingService:
         updated_data = update_data.model_dump(exclude_unset=True)
 
         # check if taught_by exists
-        if "taught_by_id" in updated_data:
+        if "taught_by_id" in updated_data and updated_data["taught_by_id"] is not None:
             await check_existence(Teacher, db, updated_data["taught_by_id"], "Teacher")
 
         # check if department exists
