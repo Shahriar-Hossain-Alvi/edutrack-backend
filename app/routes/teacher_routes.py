@@ -82,7 +82,8 @@ async def get_all_teachers_with_minimal_data(
     except HTTPException:
         raise
     except Exception as e:
-        logger.critical("Create teacher unexpected Error: ", e)
+        logger.critical(
+            "Get all teacher with minimal data unexpected Error: ", e)
 
         # attach audit payload
         if request:

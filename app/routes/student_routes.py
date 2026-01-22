@@ -50,6 +50,41 @@ async def create_student_record(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
 
+# get all students with minimal data for marks entry
+@router.get("/allStudentMinimal",
+            # response_model=list[TeacherResponseSchemaForSubjectOffering]
+            )
+async def get_all_students_with_minimal_data(
+    request: Request,
+    search: str | None = None,
+    authorized_user: UserOutSchema = Depends(
+        ensure_roles(["teacher", "super_admin", "admin"])),
+    db: AsyncSession = Depends(get_db_session)
+
+):
+    try:
+        return await StudentService.get_all_student_with_minimal_data(db, search, request)
+    except DomainIntegrityError as de:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=de.error_message
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.critical(
+            "get all student with minimal data unexpected Error: ", e)
+
+        # attach audit payload
+        if request:
+            request.state.audit_payload = {
+                "raw_error": str(e),
+                "exception_type": type(e).__name__,
+            }
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
+
 # get all students
 # @router.get(
 #     "/",
