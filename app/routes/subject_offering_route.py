@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import DomainIntegrityError
 from app.db.db import get_db_session
 from app.permissions import ensure_roles
-from app.schemas.subject_offering_schema import AllSubjectOfferingsResponseSchema, SubjectOfferingCreateSchema, SubjectOfferingUpdateSchema
+from app.schemas.subject_offering_schema import AllSubjectOfferingsResponseSchema, SubjectOfferingCreateSchema, SubjectOfferingUpdateSchema, SubjectOfferingListForMarkingResponseSchema
 from app.schemas.user_schema import UserOutSchema
 from app.services.subject_offering_service import SubjectOfferingService
 
@@ -50,9 +50,7 @@ async def create_new_subject_offering(
 
 
 # get all subject offerings: used in Assign Course page to update existing subject offering by admin, super admin
-@router.get("/",
-            response_model=list[AllSubjectOfferingsResponseSchema]
-            )
+@router.get("/", response_model=list[AllSubjectOfferingsResponseSchema])
 async def get_all_subject_offerings(
     request: Request,
     order_by_filter: str | None = None,
@@ -86,21 +84,25 @@ async def get_all_subject_offerings(
 
 
 # get offered subjects list for marking (Admin=All subjects, Teacher=subjects they teach)
-# @router.get("/offered_subjects", response_model=list[MinimalSemesterResponseSchema])
-# async def get_offered_subjects_for_marking(
-#     semester_id: int,
-#     department_id: int,
-#     authorized_user: UserOutSchema = Depends(
-#         ensure_roles(["super_admin", "admin", "teacher"])),
-#     db: AsyncSession = Depends(get_db_session),
-# ):
-#     try:
-#         return await SubjectOfferingService.get_offered_subjects_for_marking(db, semester_id, department_id, authorized_user)
-#     except HTTPException:
-#         raise
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+@router.get("/offered_subject_lists_for_marking",
+            response_model=list[SubjectOfferingListForMarkingResponseSchema]
+            )
+async def get_offered_subject_lists_for_marking(
+    students_current_semester_id: int,
+    students_department_id: int,
+    current_teacher_id: int | None = None,
+    authorized_user: UserOutSchema = Depends(
+        ensure_roles(["super_admin", "admin", "teacher"])),
+    db: AsyncSession = Depends(get_db_session),
+):
+
+    try:
+        return await SubjectOfferingService.get_offered_subjects_for_marking(db, students_current_semester_id, students_department_id, authorized_user, current_teacher_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 # @router.get("/{subject_offering_id}")

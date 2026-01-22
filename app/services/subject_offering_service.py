@@ -295,30 +295,37 @@ class SubjectOfferingService:
             )
 
     # get offered subjects for marking
-    # admin -> see all subjects for marking
-    # teacher -> see only the subjects they teach
-    # @staticmethod
-    # async def get_offered_subjects_for_marking(
-    #     db: AsyncSession,
-    #     semester_id: int,
-    #     department_id: int,
-    #     current_user: UserOutSchema
-    # ):
-    #     stmt = select(Subject)\
-    #         .join(Subject.subject_offerings)\
-    #         .where(
-    #             and_(
-    #                 Subject.semester_id == semester_id,
-    #                 SubjectOfferings.department_id == department_id
-    #             )
-    #     )
+    # admin -> use students current semester and department id to find the list of the subjects
+    # teacher -> use students current semester, department id and current(logged in) teacher id to find the list of the subjects
+    @staticmethod
+    async def get_offered_subjects_for_marking(
+        db: AsyncSession,
+        students_current_semester_id: int,
+        students_department_id: int,
+        current_user: UserOutSchema,
+        current_teacher_id: int | None = None
+    ):
+        stmt = select(SubjectOfferings)\
+            .where(
+                and_(
+                    SubjectOfferings.department_id == students_department_id,
+                    SubjectOfferings.subject.has(
+                        Subject.semester_id == students_current_semester_id
+                    )
+                )
+        ).options(
+                selectinload(SubjectOfferings.department),
+                selectinload(SubjectOfferings.subject).selectinload(
+                    Subject.semester),
+                selectinload(SubjectOfferings.taught_by)
+        )
 
-    #     # restrict subject list for teachers
-    #     if current_user.role.value == "teacher":
-    #         stmt = stmt.where(
-    #             SubjectOfferings.taught_by_id == current_user.id
-    #         )
+        # restrict subject list for teachers
+        if current_user.role.value == "teacher":
+            stmt = stmt.where(
+                SubjectOfferings.taught_by_id == current_user.id
+            )
 
-    #     result = await db.execute(stmt)
-    #     subjects = result.scalars().all()
-    #     return subjects
+        result = await db.execute(stmt)
+        subjects = result.scalars().all()
+        return subjects
