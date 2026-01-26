@@ -6,10 +6,10 @@ from app.models import ResultStatus
 
 
 class MarksBaseSchema(BaseModel):
-    assignment_mark: float = 0.0
-    class_test_mark: float = 0.0
-    midterm_mark: float = 0.0
-    final_exam_mark: float = 0.0
+    assignment_mark: float | None = None
+    class_test_mark: float | None = None
+    midterm_mark: float | None = None
+    final_exam_mark: float | None = None
     student_id: int
     subject_id: int
     semester_id: int

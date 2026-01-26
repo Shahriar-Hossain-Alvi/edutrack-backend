@@ -29,17 +29,17 @@ class Mark(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
 
-    assignment_mark: Mapped[float | None] = mapped_column(Float, default=0.0)
+    assignment_mark: Mapped[float | None] = mapped_column(Float, default=None)
 
-    midterm_mark: Mapped[float | None] = mapped_column(Float, default=0.0)
+    midterm_mark: Mapped[float | None] = mapped_column(Float, default=None)
 
-    class_test_mark: Mapped[float | None] = mapped_column(Float, default=0.0)
+    class_test_mark: Mapped[float | None] = mapped_column(Float, default=None)
 
-    final_exam_mark: Mapped[float | None] = mapped_column(Float, default=0.0)
+    final_exam_mark: Mapped[float | None] = mapped_column(Float, default=None)
 
-    total_mark: Mapped[float | None] = mapped_column(Float, default=0.0)
+    total_mark: Mapped[float | None] = mapped_column(Float, default=None)
 
-    GPA: Mapped[float | None] = mapped_column(Float, default=0.0)
+    GPA: Mapped[float | None] = mapped_column(Float, default=None)
 
     result_status: Mapped[ResultStatus] = mapped_column(
         sqlEnum(
