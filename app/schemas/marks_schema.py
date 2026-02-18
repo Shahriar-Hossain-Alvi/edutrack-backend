@@ -31,19 +31,19 @@ class MarksUpdateSchema(BaseModel):
     challenged_at: datetime | None = None
 
 
-class MarksResponseSchema(MarksBaseSchema):
-    id: int
-    total_mark: float
-    GPA: float
-    created_at: datetime
-    updated_at: datetime
-    model_config = ConfigDict(from_attributes=True)
+# class MarksResponseSchema(MarksBaseSchema):
+#     id: int
+#     total_mark: float
+#     GPA: float
+#     created_at: datetime
+#     updated_at: datetime
+#     model_config = ConfigDict(from_attributes=True)
 
 
-class SemesterWiseAllSubjectsMarksResponseSchema(BaseModel):
-    semester_id: int
-    marks: list[MarksResponseSchema]
-    model_config = ConfigDict(from_attributes=True)
+# class SemesterWiseAllSubjectsMarksResponseSchema(BaseModel):
+#     semester_id: int
+#     marks: list[MarksResponseSchema]
+#     model_config = ConfigDict(from_attributes=True)
 
 
 # used in get_all_filtered_marks router function

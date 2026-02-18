@@ -25,24 +25,24 @@ class MarksService:
 
     @staticmethod
     def compute_total_marks_and_gpa(mark_data: Mark):
-        # calculate assignment mark, midterm mark, class test mark and convert it to 20%
-        base_marks_for_in_course = 20
+        assignment = getattr(mark_data, "assignment_mark", 0) or 0
+        midterm = getattr(mark_data, "midterm_mark", 0) or 0
+        class_test = getattr(mark_data, "class_test_mark", 0) or 0
+        final = getattr(mark_data, "final_exam_mark", 0) or 0
 
-        total_in_course_marks_obtained_out_of_60 = (
-            (mark_data.assignment_mark or 0) +
-            (mark_data.midterm_mark or 0) +
-            (mark_data.class_test_mark or 0)
-        )
+        # calculate incourse mark
+        total_in_course_in_60 = float(
+            assignment + midterm + class_test)
 
-        converted_total_incourse_mark_obtained_out_of_20 = (
-            total_in_course_marks_obtained_out_of_60*base_marks_for_in_course)/60
+        # convert incourse mark to 20%
+        converted_incourse_to_20 = (
+            total_in_course_in_60*20)/60
 
-        total = (
-            converted_total_incourse_mark_obtained_out_of_20 +
-            (mark_data.final_exam_mark or 0)
-        )
+        # Total marks (incourse + final)
+        total = float(converted_incourse_to_20 + final)
 
-        mark_data.total_mark = total
+        # Rounding off to 2 decimal places
+        mark_data.total_mark = round(total, 2)
 
         # calculate gpa
         if total >= 80:

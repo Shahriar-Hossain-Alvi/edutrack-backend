@@ -1,6 +1,6 @@
 from loguru import logger
 from app.core.exceptions import DomainIntegrityError
-from app.schemas.marks_schema import MarksCreateSchema, MarksResponseSchema, MarksUpdateSchema, SemesterWiseAllSubjectsMarksResponseSchema, SemesterWiseAllSubjectsMarksWithPopulatedDataResponseSchema
+from app.schemas.marks_schema import MarksCreateSchema, MarksUpdateSchema, SemesterWiseAllSubjectsMarksWithPopulatedDataResponseSchema
 from app.schemas.user_schema import UserOutSchema
 from app.services.marks_service import MarksService
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
