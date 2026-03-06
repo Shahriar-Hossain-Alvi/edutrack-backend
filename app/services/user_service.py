@@ -1,14 +1,15 @@
 from typing import Any
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import asc, desc, select, or_
+from sqlalchemy import and_, asc, desc, select, or_
 from app.core.exceptions import DomainIntegrityError
 from app.core.integrity_error_parser import parse_integrity_error
+from app.core.pw_hash import verify_password
 from app.models import User
 from app.models.department_model import Department
 from app.models.student_model import Student
 from app.models.teacher_model import Teacher
-from app.schemas.user_schema import UserCreateSchema, UserUpdateSchemaByAdmin
+from app.schemas.user_schema import UserCreateSchema, UserPasswordUpdateSchema, UserUpdateSchemaByAdmin
 from app.core import hash_password
 from fastapi import HTTPException, Request, status
 from sqlalchemy.exc import IntegrityError
@@ -226,53 +227,65 @@ class UserService:
             )
 
     # TODO: create profile page to update the default password
-    # @staticmethod
-    # async def update_user_self(
-    #     user_id: int,
-    #     updated_password: UserPasswordUpdateSchema,
-    #     db: AsyncSession,
-    #     request: Request | None = None
-    # ):
-    #     user = await db.scalar(select(User).where(User.id == user_id))
+    @staticmethod
+    async def update_user_self(
+        user_id: int,
+        password_update_data: UserPasswordUpdateSchema,
+        db: AsyncSession,
+        request: Request | None = None
+    ):
+        user = await db.scalar(select(User).where(
+            and_(
+                User.id == user_id,
+                User.username == password_update_data.username
+            )
+        ))
 
-    #     if not user:
-    #         raise HTTPException(
-    #             status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        # if user not found raise error
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found or username is mismatch")
 
-    #     try:
-    #         updated_hashed_password = hash_password(updated_password.password)
+        # if current password is incorrect raise error
+        if user:
+            if not verify_password(password_update_data.current_password, user.hashed_password):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Current password is incorrect"
+                )
+        try:
+            # hash the new password
+            user.hashed_password = hash_password(
+                password_update_data.new_password)
 
-    #         user.hashed_password = updated_hashed_password
+            await db.commit()
+            logger.success("Password updated")
+            return {
+                "message": f"Password updated."
+            }
+        except IntegrityError as e:
+            # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state
+            await db.rollback()
 
-    #         await db.commit()
-    #         await db.refresh(user)
-    #         logger.success("Password updated successfully")
-    #         return {
-    #             "message": f"Password updated successfully. Email/Username: {user.username}"
-    #         }
-    #     except IntegrityError as e:
-    #         # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state
-    #         await db.rollback()
+            # generally the PostgreSQL's error message will be in e.orig.args
+            raw_error_message = str(e.orig) if e.orig else str(e)
+            readable_error = parse_integrity_error(raw_error_message)
 
-    #         # generally the PostgreSQL's error message will be in e.orig.args
-    #         raw_error_message = str(e.orig) if e.orig else str(e)
-    #         readable_error = parse_integrity_error(raw_error_message)
+            logger.error(f"Integrity error while updating password: {e}")
+            logger.error(f"Readable Error: {readable_error}")
 
-    #         logger.error(f"Integrity error while updating password: {e}")
-    #         logger.error(f"Readable Error: {readable_error}")
+            # attach audit payload safely
+            if request:
+                payload: dict[str, Any] = {
+                    "raw_error": raw_error_message,
+                    "readable_error": readable_error,
+                }
 
-    #         # attach audit payload safely
-    #         if request:
-    #             payload: dict[str, Any] = {
-    #                 "raw_error": raw_error_message,
-    #                 "readable_error": readable_error,
-    #             }
+                request.state.audit_payload = payload
 
-    #             request.state.audit_payload = payload
-
-    #         raise DomainIntegrityError(
-    #             error_message=readable_error, raw_error=raw_error_message
-    #         )
+            raise DomainIntegrityError(
+                error_message=readable_error, raw_error=raw_error_message
+            )
 
     # @staticmethod
     # async def delete_user(

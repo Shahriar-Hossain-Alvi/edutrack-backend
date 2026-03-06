@@ -6,7 +6,7 @@ from app.core.exceptions import DomainIntegrityError
 from app.permissions import ensure_roles
 from app.services.user_service import UserService
 from app.db.db import get_db_session
-from app.schemas.user_schema import AllUsersWithDetailsResponseSchema, UserCreateSchema, UserOutSchema, UserUpdateSchemaByAdmin
+from app.schemas.user_schema import AllUsersWithDetailsResponseSchema, UserCreateSchema, UserOutSchema, UserPasswordUpdateSchema, UserUpdateSchemaByAdmin
 
 
 router = APIRouter(
@@ -128,40 +128,40 @@ async def update_single_user_by_admin(
 
 # TODO: create profile page to update the default password
 # update single user by self(password update)
-# @router.patch("/updatePassword/{id}")
-# async def update_single_user_by_self(
-#     id: int,
-#     user_data: UserPasswordUpdateSchema,
-#     request: Request,
-#     db: AsyncSession = Depends(get_db_session),
-#     current_user: UserOutSchema = Depends(get_current_user),
-# ):
-#     # attach action
-#     request.state.action = "UPDATE USER PASSWORD(self)"
+@router.patch("/updatePassword/{id}")
+async def update_single_user_by_self(
+    id: int,
+    password_update_data: UserPasswordUpdateSchema,
+    request: Request,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: UserOutSchema = Depends(get_current_user),
+):
+    # attach action
+    request.state.action = "UPDATE USER PASSWORD(self)"
 
-#     if id != current_user.id:
-#         raise HTTPException(
-#             status_code=400, detail="You are not authorized to update this record.")
+    if id != current_user.id:
+        raise HTTPException(
+            status_code=400, detail="You are not authorized to update this record.")
 
-#     try:
-#         return await UserService.update_user_self(id, user_data, db, request)
-#     except DomainIntegrityError as de:
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST,
-#             detail=de.error_message
-#         )
-#     except HTTPException:
-#         raise
-#     except Exception as e:
-#         logger.critical(f"User password update(self) unexpected error: {e}")
+    try:
+        return await UserService.update_user_self(id, password_update_data, db, request)
+    except DomainIntegrityError as de:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=de.error_message
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.critical(f"User password update(self) unexpected error: {e}")
 
-#         # attach audit payload
-#         if request:
-#             request.state.audit_payload = {
-#                 "raw_error": str(e),
-#                 "exception_type": type(e).__name__,
-#             }
-#         raise HTTPException(status_code=500, detail="Internal Server Error")
+        # attach audit payload
+        if request:
+            request.state.audit_payload = {
+                "raw_error": str(e),
+                "exception_type": type(e).__name__,
+            }
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 # delete single user: user in
