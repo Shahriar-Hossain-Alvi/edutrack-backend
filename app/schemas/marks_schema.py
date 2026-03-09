@@ -25,6 +25,7 @@ class MarksCreateSchema(MarksBaseSchema):
     pass
 
 
+# used in update_a_mark router function
 class MarksUpdateSchema(BaseModel):
     # student_id: int
     # subject_id: int
@@ -62,7 +63,7 @@ class PopulatedMarksStudentResponseSchema(BaseModel):
     id: int
     user_id: int
     name: str
-    registration: int
+    registration: str
     session: str
     department_id: int
     department: PopulatedMarksStudentsDepartmentResponseSchema
@@ -105,4 +106,32 @@ class SemesterWiseAllSubjectsMarksWithPopulatedDataResponseSchema(BaseModel):
     semester_name: str
     session: str
     marks: list[PopulatedMarksResponseSchema]
+    model_config = ConfigDict(from_attributes=True)
+
+
+# used in generate_single_students_single_semester_result router function
+class ResultResponseSchema(BaseModel):
+    id: int
+    assignment_mark: float
+    class_test_mark: float
+    midterm_mark: float
+    final_exam_mark: float
+    total_mark: float
+    GPA: float
+    student_id: int
+    student: PopulatedMarksStudentResponseSchema
+    semester_id: int
+    semester: PopulatedMarksStudentsCurrentSemesterResponseSchema
+    subject_id: int
+    subject: MinimalSubjectResponseSchema
+    model_config = ConfigDict(from_attributes=True)
+
+
+# used in generate_single_students_single_semester_result router function
+class GenerateSingleStudentsSingleSemesterResultResponseSchema(BaseModel):
+    is_published: bool
+    published_count: int
+    total_subjects: int
+    result: list[ResultResponseSchema] | None = None
+    message: str | None = None
     model_config = ConfigDict(from_attributes=True)
