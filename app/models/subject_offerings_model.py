@@ -11,7 +11,7 @@ class SubjectOfferings(Base, TimestampMixin):
 
     # relationship with teacher
     taught_by_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("teachers.id", ondelete="SET NULL"))
+        Integer, ForeignKey("teachers.id", ondelete="SET NULL"), index=True)
 
     taught_by: Mapped["Teacher"] = relationship(  # type: ignore
         back_populates="subject_offerings")
