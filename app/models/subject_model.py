@@ -21,7 +21,8 @@ class Subject(Base, TimestampMixin):
 
     # relationship with semester
     semester_id: Mapped[int] = mapped_column(Integer, ForeignKey(
-        "semesters.id", ondelete="SET NULL"))  # set null if semester is deleted
+        # set null if semester is deleted
+        "semesters.id", ondelete="SET NULL"), index=True)
 
     # one subject belongs to one semester
     semester: Mapped["Semester"] = relationship(  # type: ignore
