@@ -26,7 +26,7 @@ class StudentService:
             db: AsyncSession,
             request: Request | None = None,
     ):
-        # check for existance in user table
+        # check for existence in user table
         existing_user = await db.scalar(select(User).where(User.username == student_data.user.username))
 
         if existing_user:
@@ -177,7 +177,9 @@ class StudentService:
             user_id: int
     ):
         stmt = select(Student).where(Student.user_id == user_id).options(
-            joinedload(Student.user)  # Eager load user
+            joinedload(Student.user),  # Eager load user
+            joinedload(Student.department),
+            joinedload(Student.semester)
         )
 
         student = await db.scalar(stmt)
@@ -213,7 +215,7 @@ class StudentService:
                 if old_public_id and old_public_id != new_public_id:
                     await delete_image_from_cloudinary(old_public_id)
                     logger.success(
-                        "Old studet profile picture deleted from Cloudinary")
+                        "Old student profile picture deleted from Cloudinary")
 
             for key, value in updated_student_data.items():
                 # apply the updated data in the student object(from DB)

@@ -39,14 +39,6 @@ class StudentCreateSchema(StudentBaseSchema):
 #     model_config = ConfigDict(from_attributes=True)
 
 
-# used in get_single_student router function to get students profile data
-class StudentProfileResponseSchemaNested(StudentBaseSchema):
-    id: int
-    created_at: datetime
-    updated_at: datetime
-    user: UserOutSchema
-    model_config = ConfigDict(from_attributes=True)
-
 # TODO: create studet profile to update users these data by self
 # class StudentUpdateSchema(BaseModel):
 #     name: str | None = None
@@ -69,6 +61,18 @@ class SemesterDataForMinimalStudent(BaseModel):
     semester_name: str
     semester_number: int
     model_config = ConfigDict(from_attributes=True)
+
+
+# used in get_single_student router function to get students profile data
+class StudentProfileResponseSchemaNested(StudentBaseSchema):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    user: UserOutSchema
+    department: DepartmentDataForMinimalStudent | None
+    semester: SemesterDataForMinimalStudent | None
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 # used in get_all_students_with_minimal_data for mark input
