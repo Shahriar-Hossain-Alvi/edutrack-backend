@@ -127,7 +127,6 @@ async def update_single_user_by_admin(
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-# TODO: create profile page to update the default password
 # update single user by self(password update)
 @router.patch("/updatePassword/{id}")
 async def update_single_user_by_self(
