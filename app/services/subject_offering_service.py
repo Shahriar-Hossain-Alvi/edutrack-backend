@@ -2,7 +2,7 @@ import time
 from typing import Any
 from loguru import logger
 from sqlalchemy import and_, asc, desc, func, or_, select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import DomainIntegrityError
 from app.core.integrity_error_parser import parse_integrity_error
@@ -317,7 +317,8 @@ class SubjectOfferingService:
                 selectinload(SubjectOfferings.department),
                 selectinload(SubjectOfferings.subject).selectinload(
                     Subject.semester),
-                selectinload(SubjectOfferings.taught_by)
+                selectinload(SubjectOfferings.taught_by).selectinload(
+                    Teacher.department)
         )
 
         # restrict subject list for teachers
@@ -325,6 +326,24 @@ class SubjectOfferingService:
             stmt = stmt.where(
                 SubjectOfferings.taught_by_id == current_user.id
             )
+
+        result = await db.execute(stmt)
+        subjects = result.scalars().all()
+        return subjects
+
+    # get students offered subjects by department
+
+    @staticmethod
+    async def students_offered_subjects(
+        db: AsyncSession,
+        students_department_id: int
+    ):
+        stmt = select(SubjectOfferings).where(SubjectOfferings.department_id == students_department_id).options(
+            joinedload(SubjectOfferings.subject).joinedload(
+                Subject.semester),
+            joinedload(SubjectOfferings.taught_by).joinedload(
+                Teacher.department)
+        )
 
         result = await db.execute(stmt)
         subjects = result.scalars().all()
