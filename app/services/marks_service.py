@@ -591,7 +591,7 @@ class MarksService:
             pdf.ln(10)
 
             # Marks table headers
-            # colum width calculation (total 190)
+            # column width calculation (total 190)
             w_sub = 65
             w_code = 25
             w_credits = 15
@@ -754,25 +754,7 @@ class MarksService:
             await db.execute(update_stmt)
             await db.commit()
 
-            return {"message": f"Successfullt updated {total_inserted_marks} marks."}
-
-            # statement = select(Mark).where(
-            #     and_(
-            #         Mark.semester_id == batch_publish_data.semester_id,
-            #         Mark.student.session == batch_publish_data.session,
-            #         Mark.student.department_id == batch_publish_data.department_id
-            #     )
-            # )
-
-            # all_marks = (await db.execute(statement)).scalars().all()
-
-            # if all_marks:
-            #     for mark in all_marks:
-            #         mark.result_status = ResultStatus.PUBLISHED
-
-            #     await db.commit()
-            #     return {"detail": "Marks published successfully."}
-
+            return {"message": f"Successfully updated {total_inserted_marks} marks."}
         except IntegrityError as e:
             # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state
             await db.rollback()
@@ -803,23 +785,79 @@ class MarksService:
                 error_message=readable_error, raw_error=raw_error_message
             )
 
-    # @staticmethod  # get all marks for a subject with semester filtering, subject filtering
-    # async def get_all_marks_for_a_student(
-    #     db: AsyncSession,
-    #     student_id: int,
-    #     semester_id: int | None = None,  # for filtering
-    #     subject_id: int | None = None  # for filtering
-    # ):
-    #     stmt = select(Mark).where(Mark.student_id == student_id)
-    #     if semester_id:
-    #         # this part will be added to the existing statement if the semester_id is provided
-    #         stmt = stmt.where(Mark.semester_id == semester_id)
-    #     if subject_id:
-    #         # this part will be added to the existing statement if the subject_id is provided
-    #         stmt = stmt.where(Mark.subject_id == subject_id)
-    #     marks = await db.scalars(stmt)
-    #     return MarksService.group_marks_by_semester(marks)
-    # @staticmethod  # get all students mark for a particular subject
-    # async def get_all_mark_for_a_subject(db: AsyncSession, subject_id: int):
-    #     marks = await db.scalars(select(Mark).where(Mark.subject_id == subject_id))
-    #     return marks
+    @staticmethod  # get all marks for a subject with semester filtering, subject filtering
+    async def get_all_semesters_result_for_a_student(
+        db: AsyncSession,
+        user_id: int
+    ):
+        # get students id
+        stmt = select(Student).where(Student.user_id == user_id)
+        student = (await db.execute(stmt)).scalar_one_or_none()
+
+        if not student:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+
+        student_id = student.id
+
+        # get all published marks for a student
+        statement = select(Mark).where(
+            and_(
+                Mark.student_id == student_id,
+                Mark.result_status == ResultStatus.PUBLISHED
+            )
+        ).options(
+            # Mark -> Semester = get the semester info
+            joinedload(Mark.semester),
+            # Mark -> Subject = get the subject info
+            joinedload(Mark.subject),
+            # Mark -> Student -> Semester = get the current semester info
+            joinedload(Mark.student)
+        )
+
+        result = await db.execute(statement)
+        marks = result.unique().scalars().all()  # remove duplicates using unique()
+
+        # create a dictionary where the key will be department name, semester name and session
+        grouped = defaultdict(list)
+
+        for m in marks:
+            # extract the category key from every mark using a tuple
+            category_key = (
+                m.semester_id,
+                m.semester.semester_name,
+                m.student.session
+            )
+            # add the mark to the corresponding category
+            grouped[category_key].append(m)
+
+        # convert the data in a list of dictionaries
+        result = []
+        for key, items in grouped.items():
+            sem_id, sem_name, session_name = key
+
+            # get total offered subjects for that particular department and semester
+            total_offered_subjects_stmt = select(func.count(SubjectOfferings.id)).join(Subject, SubjectOfferings.subject_id == Subject.id).where(
+                and_(
+                    SubjectOfferings.department_id == student.department_id,
+                    Subject.semester_id == sem_id
+                )
+            )
+
+            total_offered = (await db.execute(total_offered_subjects_stmt)).scalar() or 0
+            total_fetched_marks = len(items)
+
+            if total_offered > 0 and total_fetched_marks == total_offered:
+                result.append({
+                    "semester_id": sem_id,
+                    "semester_name": sem_name,
+                    "session": session_name,
+                    "marks": items
+                })
+
+        return result
+
+    @staticmethod  # get all students mark for a particular subject
+    async def get_all_mark_for_a_subject(db: AsyncSession, subject_id: int):
+        marks = await db.scalars(select(Mark).where(Mark.subject_id == subject_id))
+        return marks

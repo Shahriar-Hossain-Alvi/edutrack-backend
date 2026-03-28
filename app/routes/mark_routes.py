@@ -1,6 +1,6 @@
 from loguru import logger
 from app.core.exceptions import DomainIntegrityError
-from app.schemas.marks_schema import BatchResultPublishSchema, GenerateSingleStudentsSingleSemesterResultResponseSchema, MarksCreateSchema, MarksUpdateSchema, SemesterWiseAllSubjectsMarksWithPopulatedDataResponseSchema
+from app.schemas.marks_schema import BatchResultPublishSchema, GenerateSingleStudentsSingleSemesterResultResponseSchema, MarksCreateSchema, MarksUpdateSchema, SemesterWiseAllSubjectsMarksWithPopulatedDataResponseSchema, SemesterWiseResultResponseSchema
 from app.schemas.user_schema import UserOutSchema
 from app.services.marks_service import MarksService
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -110,6 +110,25 @@ async def generate_single_students_single_semester_result(
         )
 
 
+# get all semesters marks for a student
+@router.get("/student/{user_id}",
+            response_model=list[SemesterWiseResultResponseSchema]
+            )
+async def get_all_semesters_result_for_a_student(
+    user_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    authorized_user: UserOutSchema = Depends(
+        ensure_roles(["student"])),
+):
+    try:
+        return await MarksService.get_all_semesters_result_for_a_student(db, user_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
 # batch publish marks
 @router.patch("/batch_publish")
 async def batch_publish_marks(
@@ -206,21 +225,3 @@ async def delete_a_mark(
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-
-
-# get all subjects marks for a student
-# @router.get("/student/{student_id}", response_model=list[SemesterWiseAllSubjectsMarksResponseSchema])
-# async def get_all_subjects_marks_for_a_student(
-#     student_id: int,
-#     semester_id: int | None = Query(None),
-#     subject_id: int | None = Query(None),
-#     db: AsyncSession = Depends(get_db_session),
-#     current_user: UserOutSchema = Depends(get_current_user),
-# ):
-#     try:
-#         return await MarksService.get_all_marks_for_a_student(db, student_id, semester_id, subject_id)
-#     except HTTPException:
-#         raise
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
