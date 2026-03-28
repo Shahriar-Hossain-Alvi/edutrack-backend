@@ -1,3 +1,4 @@
+from collections import defaultdict
 import time
 from typing import Any
 from loguru import logger
@@ -7,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import DomainIntegrityError
 from app.core.integrity_error_parser import parse_integrity_error
 from app.models.department_model import Department
+from app.models.student_model import Student
 from app.models.subject_model import Subject
 from app.models.subject_offerings_model import SubjectOfferings
 from app.models.teacher_model import Teacher
@@ -331,13 +333,22 @@ class SubjectOfferingService:
         subjects = result.scalars().all()
         return subjects
 
-    # get students offered subjects by department
-
-    @staticmethod
+    @staticmethod  # get students offered subjects by department
     async def students_offered_subjects(
         db: AsyncSession,
-        students_department_id: int
+        user_id: int
     ):
+        # get student's department id
+        stmt = select(Student).where(Student.user_id == user_id)
+        student = (await db.execute(stmt)).scalar_one_or_none()
+
+        if not student:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+
+        students_department_id = student.department_id
+
+        # get offered subjects based on the students department
         stmt = select(SubjectOfferings).where(SubjectOfferings.department_id == students_department_id).options(
             joinedload(SubjectOfferings.subject).joinedload(
                 Subject.semester),
@@ -347,4 +358,25 @@ class SubjectOfferingService:
 
         result = await db.execute(stmt)
         subjects = result.scalars().all()
-        return subjects
+
+        # group subjects based on semesters
+        grouped = defaultdict(list)
+
+        for s in subjects:
+            # extract the category key from every mark using a tuple
+            category_key = (
+                s.subject.semester_id,
+                s.subject.semester.semester_name,
+            )
+            grouped[category_key].append(s)
+
+        # format the data
+        semester_subjects = []
+        for (sem_id, sem_name), subjects in grouped.items():
+            semester_subjects.append({
+                "semester_id": sem_id,
+                "semester_name": sem_name,
+                "subjects": subjects
+            })
+
+        return semester_subjects

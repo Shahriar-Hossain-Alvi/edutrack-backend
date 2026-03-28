@@ -104,15 +104,15 @@ async def get_offered_subject_lists_for_marking(
 
 
 # get offered subjects based on students department
-@router.get("/studentsOfferedSubjects",
+@router.get("/studentsOfferedSubjects/{user_id}",
             response_model=list[StudentsOfferedSubjectsResponseSchema]
             )
 async def students_offered_subjects(
-    students_department_id: int,
+    user_id: int,
     db: AsyncSession = Depends(get_db_session)
 ):
     try:
-        return await SubjectOfferingService.students_offered_subjects(db, students_department_id)
+        return await SubjectOfferingService.students_offered_subjects(db, user_id)
     except HTTPException:
         raise
     except Exception as e:

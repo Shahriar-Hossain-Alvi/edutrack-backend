@@ -102,8 +102,15 @@ class SubjectOfferingListForMarkingResponseSchema(BaseModel):
 
 
 # used in studentsOfferedSubjects router
-class StudentsOfferedSubjectsResponseSchema(BaseModel):
+class SubjectsWithTaughtByResponseSchema(BaseModel):
     id: int
-    taught_by: SubjectOfferingForMarkingTaughtByResponseSchema | None
+    taught_by: SubjectOfferingTaughtByResponseSchema
     subject: SubjectOfferingForMarkingSubjectResponseSchema
+    model_config = ConfigDict(from_attributes=True)
+
+
+class StudentsOfferedSubjectsResponseSchema(BaseModel):
+    semester_id: int
+    semester_name: str
+    subjects: list[SubjectsWithTaughtByResponseSchema]
     model_config = ConfigDict(from_attributes=True)
