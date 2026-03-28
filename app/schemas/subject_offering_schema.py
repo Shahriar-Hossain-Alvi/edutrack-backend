@@ -68,11 +68,12 @@ class AllSubjectOfferingsResponseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# Get all offerered subject based on students current semester, department and teachers id: below schemas are used in get_offered_subject_lists_for_marking router function
+# Get all offered subject based on students current semester, department and teachers id: below schemas are used in get_offered_subject_lists_for_marking router function
 class SubjectOfferingForMarkingTaughtByResponseSchema(BaseModel):
     id: int
     name: str
     department_id: int
+    department: SubjectOfferingDepartmentResponseSchema
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -99,34 +100,17 @@ class SubjectOfferingListForMarkingResponseSchema(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    """
-      {
-    "id": 18,
-    "taught_by_id": 7,
-    "taught_by": {
-      "id": 7,
-      "name": "Dr. Ariful Islam",
-      "department_id": 2,
-    },
 
-    "subject_id": 9,
+# used in studentsOfferedSubjects router
+class SubjectsWithTaughtByResponseSchema(BaseModel):
+    id: int
+    taught_by: SubjectOfferingTaughtByResponseSchema
+    subject: SubjectOfferingForMarkingSubjectResponseSchema
+    model_config = ConfigDict(from_attributes=True)
 
-    "department_id": 2,
-    "department": {
-      "id": 2,
-      "department_name": "cse - computer science & engineering",
-    },
 
-    "subject": {
-      "id": 9,
-      "semester_id": 2,
-      "subject_title": "Structured Programming",
-      "subject_code": "CSE-1101",
-      "semester": {
-        "id": 2,
-        "semester_name": "first",
-        "semester_number": 1
-      }
-    }
-  },
-    """
+class StudentsOfferedSubjectsResponseSchema(BaseModel):
+    semester_id: int
+    semester_name: str
+    subjects: list[SubjectsWithTaughtByResponseSchema]
+    model_config = ConfigDict(from_attributes=True)

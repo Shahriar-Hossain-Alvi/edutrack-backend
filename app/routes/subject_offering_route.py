@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import DomainIntegrityError
 from app.db.db import get_db_session
 from app.permissions import ensure_roles
-from app.schemas.subject_offering_schema import AllSubjectOfferingsResponseSchema, SubjectOfferingCreateSchema, SubjectOfferingUpdateSchema, SubjectOfferingListForMarkingResponseSchema
+from app.schemas.subject_offering_schema import AllSubjectOfferingsResponseSchema, StudentsOfferedSubjectsResponseSchema, SubjectOfferingCreateSchema, SubjectOfferingUpdateSchema, SubjectOfferingListForMarkingResponseSchema
 from app.schemas.user_schema import UserOutSchema
 from app.services.subject_offering_service import SubjectOfferingService
 
@@ -84,9 +84,7 @@ async def get_all_subject_offerings(
 
 
 # get offered subjects list for marking (Admin=All subjects, Teacher=subjects they teach)
-@router.get("/offered_subject_lists_for_marking",
-            response_model=list[SubjectOfferingListForMarkingResponseSchema]
-            )
+@router.get("/offered_subject_lists_for_marking", response_model=list[SubjectOfferingListForMarkingResponseSchema])
 async def get_offered_subject_lists_for_marking(
     students_current_semester_id: int,
     students_department_id: int,
@@ -105,20 +103,37 @@ async def get_offered_subject_lists_for_marking(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-# @router.get("/{subject_offering_id}")
-# async def get_single_subject_offering(
-#     subject_offering_id: int,
-#     authorized_user: UserOutSchema = Depends(
-#         ensure_roles(["super_admin", "admin", "teacher"])),
-#     db: AsyncSession = Depends(get_db_session),
-# ):
-#     try:
-#         return await SubjectOfferingService.get_subject_offering(db, subject_offering_id)
-#     except HTTPException:
-#         raise
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+# get offered subjects based on students department
+@router.get("/studentsOfferedSubjects/{user_id}",
+            response_model=list[StudentsOfferedSubjectsResponseSchema]
+            )
+async def students_offered_subjects(
+    user_id: int,
+    db: AsyncSession = Depends(get_db_session)
+):
+    try:
+        return await SubjectOfferingService.students_offered_subjects(db, user_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.critical(f"Get my offered subjects unexpected Error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+    # @router.get("/{subject_offering_id}")
+    # async def get_single_subject_offering(
+    #     subject_offering_id: int,
+    #     authorized_user: UserOutSchema = Depends(
+    #         ensure_roles(["super_admin", "admin", "teacher"])),
+    #     db: AsyncSession = Depends(get_db_session),
+    # ):
+    #     try:
+    #         return await SubjectOfferingService.get_subject_offering(db, subject_offering_id)
+    #     except HTTPException:
+    #         raise
+    #     except Exception as e:
+    #         raise HTTPException(
+    #             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @router.patch("/{subject_offering_id}")

@@ -1,11 +1,11 @@
-# 🌟 Result Processing System
+# Result Processing System
 
 This project generates student results. It uses **FastAPI** for the backend, **Docker** for containerization, **PostgreSQL** for the database and **Alembic** for database migrations.  
 It fully supports development using Docker with hot reload.
 
 ---
 
-## 🛠️ Prerequisites
+## Prerequisites
 
 Before you begin, ensure you have the following installed on your system:
 
@@ -51,7 +51,7 @@ pip install -r requirements.txt
 ```
 ---
 
-# 🐳 Run the Backend with Docker
+# Run the Backend with Docker
 
 ## 4. Development Mode (hot reload)
 
@@ -67,7 +67,7 @@ docker compose -f docker-compose.prod.yml up --build -d
 
 ---
 
-## 6. 📂 Database Migrations (Alembic)
+## 6. Database Migrations (Alembic)
 
 ### 1️⃣ When you modify the models:
 Generate migration (Locally in project folder):
@@ -103,7 +103,7 @@ docker exec -it edutrack_backend_dev /bin/bash -c "PYTHONPATH=/app python app/db
 
 --- 
 
-## 7. 🛑 Stopping Docker
+## 7. Stopping Docker
 ```
 docker compose -f docker-compose.dev.yml down       # keeps DB data: 
 
@@ -120,7 +120,7 @@ pip install package-name
 pip freeze > requirements.txt
 ```
 
-### ⚠️ Then **rebuild Docker image**:
+### Then **rebuild Docker image**:
 ```
 docker compose -f docker-compose.dev.yml up --build
 ```
