@@ -18,7 +18,7 @@ from app.schemas.marks_schema import BatchResultPublishSchema, MarksCreateSchema
 from app.schemas.user_schema import UserOutSchema
 from app.utils import check_existence
 from sqlalchemy.orm import joinedload
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.exc import IntegrityError
 import base64
 from fpdf import FPDF
@@ -219,7 +219,7 @@ class MarksService:
             joinedload(Mark.student).joinedload(Student.semester),
             # Mark -> Subject = get the subject info
             joinedload(Mark.subject)
-        ).order_by(Mark.created_at.desc())
+        ).order_by(Mark.updated_at.desc())
 
         # If teacher → restrict to subjects they teach
         if current_user.role == "teacher":
@@ -297,6 +297,18 @@ class MarksService:
                 if (update_dict["result_challenge_status"] == ResultChallengeStatus.CHALLENGED
                     and mark.result_status == ResultStatus.PUBLISHED
                         and mark.result_challenge_status == ResultChallengeStatus.NONE):
+
+                    # check if the challenge period is over
+                    current_date = datetime.now(timezone.utc)
+                    result_creation_date = mark.created_at
+                    challenge_period = current_date - result_creation_date
+
+                    if challenge_period.days >= 10:
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Challenge period(10 days) is over."
+                        )
+
                     # set result is challenged
                     mark.result_challenge_status = ResultChallengeStatus.CHALLENGED
                     mark.result_challenge_payment_status = False  # set payment status is pending
@@ -308,7 +320,7 @@ class MarksService:
             elif set(update_dict.keys()) != {"result_challenge_status"}:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Bad Request."
+                    detail="Bad Request! You can only challenge result once!"
                 )
             else:
                 raise HTTPException(
@@ -813,7 +825,7 @@ class MarksService:
             joinedload(Mark.subject),
             # Mark -> Student -> Semester = get the current semester info
             joinedload(Mark.student)
-        )
+        ).order_by(Mark.updated_at.desc())
 
         result = await db.execute(statement)
         marks = result.unique().scalars().all()  # remove duplicates using unique()

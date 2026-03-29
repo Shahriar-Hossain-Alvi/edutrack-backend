@@ -159,9 +159,10 @@ class ResultResponseSchema(BaseModel):
     GPA: float
     challenged_at: datetime | None = None
     result_challenge_payment_status: bool | None = None
+    result_challenge_status: ResultChallengeStatus
     challenge_payment_time: datetime | None = None
     challenge_resolved_at: datetime | None = None
-    result_status: ResultStatus
+    # result_status: ResultStatus
     semester_id: int
     semester: PopulatedMarksStudentsCurrentSemesterResponseSchema
     subject_id: int
