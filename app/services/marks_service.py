@@ -1,12 +1,12 @@
 from collections import defaultdict
-from typing import Annotated, Any
+from typing import Any
 from loguru import logger
-from sqlalchemy import and_, func, join, select, update
+from sqlalchemy import and_, func, select, update
 from app.core.exceptions import DomainIntegrityError
 from app.core.integrity_error_parser import parse_integrity_error
 from app.models import Mark, ResultStatus
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException, Query, Request, status
+from fastapi import HTTPException, Request, status
 from app.models.mark_model import ResultChallengeStatus
 from app.models.semester_model import Semester
 from app.models.student_model import Student
@@ -16,6 +16,7 @@ from app.models.teacher_model import Teacher
 from app.models.user_model import User
 from app.schemas.marks_schema import BatchResultPublishSchema, MarksCreateSchema, MarksUpdateSchema
 from app.schemas.user_schema import UserOutSchema
+from app.services.notification_service import NotificationService
 from app.utils import check_existence
 from sqlalchemy.orm import joinedload
 from datetime import datetime, timezone
@@ -266,7 +267,11 @@ class MarksService:
         request: Request | None = None
     ):
         # check if mark exists
-        mark = await db.scalar(select(Mark).where(Mark.id == mark_id))
+        mark = await db.scalar(select(Mark).where(Mark.id == mark_id).options(
+            joinedload(Mark.semester),
+            joinedload(Mark.subject),
+            joinedload(Mark.student)
+        ))
 
         if not mark:
             raise HTTPException(
@@ -398,6 +403,27 @@ class MarksService:
         try:
             await db.commit()
             await db.refresh(mark)
+
+            # Single Result Publish notification
+            if "result_status" in update_dict and update_dict["result_status"] == ResultStatus.PUBLISHED:
+                await NotificationService.store_notification(
+                    db, mark.student.user_id, "Result Published", f"Your result for {mark.subject.subject_title} is now available."
+                )
+
+            # Payment Status notification
+            if "result_challenge_payment_status" in update_dict:
+                status_text = "Confirmed" if update_dict["result_challenge_payment_status"] else "Pending"
+                await NotificationService.store_notification(
+                    db, mark.student.user_id,
+                    "Payment Update", f"Your challenge payment for {mark.subject.subject_title} is {status_text}."
+                )
+
+            # ৩. Challenge Resolved notification
+            if mark.result_challenge_status == ResultChallengeStatus.RESOLVED:
+                await NotificationService.store_notification(
+                    db, mark.student.user_id,
+                    "Challenge Resolved", f"The challenge for {mark.subject.subject_title} has been resolved. Check your marks now."
+                )
 
             return {
                 "message": f"Mark status updated",
@@ -765,6 +791,14 @@ class MarksService:
 
             await db.execute(update_stmt)
             await db.commit()
+
+            # store notification
+            await NotificationService.store_bulk_publish_notification(
+                db=db,
+                department_id=batch_publish_data.department_id,
+                semester_id=batch_publish_data.semester_id,
+                session=batch_publish_data.session
+            )
 
             return {"message": f"Successfully updated {total_inserted_marks} marks."}
         except IntegrityError as e:

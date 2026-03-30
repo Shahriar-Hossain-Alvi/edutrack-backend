@@ -60,10 +60,10 @@ Build and run the docker containers (make sure you are inside the backend projec
 docker compose -f docker-compose.dev.yml up --build
 ```
 
-## 5. Production Mode
-```
-docker compose -f docker-compose.prod.yml up --build -d
-```
+<!-- ## 5. Production Mode -->
+<!-- ``` -->
+<!-- docker compose -f docker-compose.prod.yml up --build -d -->
+<!-- ``` -->
 
 ---
 
@@ -80,7 +80,7 @@ alembic revision --autogenerate -m "message"
 alembic upgrade head
 ```
 
-### 3️⃣ Apply migrations inside Docker (dev container):
+### OR Apply migrations inside Docker (dev container):
 - Generate Migrations inside Docker container (if local migration fails or directly use migration using docker container):
 ```
 docker exec -it edutrack_backend_dev alembic revision --autogenerate -m "message"  
@@ -105,9 +105,9 @@ docker exec -it edutrack_backend_dev /bin/bash -c "PYTHONPATH=/app python app/db
 
 ## 7. Stopping Docker
 ```
-docker compose -f docker-compose.dev.yml down       # keeps DB data: 
+docker compose -f docker-compose.dev.yml down       # keeps DB data 
 
-docker compose -f docker-compose.dev.yml down -v    # Deletes DB data: 
+docker compose -f docker-compose.dev.yml down -v    # Deletes DB data 
 
 ctrl+c # If docker is running in the terminal 
 ```
@@ -129,6 +129,6 @@ docker compose -f docker-compose.dev.yml up --build
 
 
 # API Endpoints
-- Backend API: http://localhost:8000
+- Backend Base API: http://localhost:8000/api
 - Swagger UI(Docs): http://localhost:8000/docs
 - PostgreSQL data persists inside Docker volume: `postgres_data`

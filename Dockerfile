@@ -43,10 +43,10 @@ EXPOSE 8000
 # 1. Ths command works in local
 # CMD bash -c "alembic upgrade head && python app/db/seed_admin.py && uvicorn app.main:app --host 0.0.0.0 --port 8000" 
 
-# 2. The below commmand faild to start backend in Render. ModuleNotFoundError: No module named 'app' This happens because when you run python app/db/seed_admin.py, Python looks for a folder named app inside the folder where the script lives. It can't find it because app is the parent directory.
+# 2. The below command failed to start backend in Render. ModuleNotFoundError: No module named 'app' This happens because when you run python app/db/seed_admin.py, Python looks for a folder named app inside the folder where the script lives. It can't find it because app is the parent directory.
 # CMD bash -c "alembic upgrade head && python app/db/seed_admin.py && gunicorn -w 4 -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:8000"
 
-# 3. The below commad needs pre-deploy command for alembic in Render to work. But its paid plan so no free tier
+# 3. The below command needs pre-deploy command for alembic in Render to work. But its paid plan so no free tier
 # CMD ["gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "app.main:app", "--bind", "0.0.0.0:8000"]
 
 # 4. The below command works in Render

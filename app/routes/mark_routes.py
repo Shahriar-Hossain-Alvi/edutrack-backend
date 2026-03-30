@@ -111,9 +111,7 @@ async def generate_single_students_single_semester_result(
 
 
 # get all semesters marks for a student
-@router.get("/student/{user_id}",
-            response_model=list[SemesterWiseResultResponseSchema]
-            )
+@router.get("/student/{user_id}", response_model=list[SemesterWiseResultResponseSchema])
 async def get_all_semesters_result_for_a_student(
     user_id: int,
     db: AsyncSession = Depends(get_db_session),
