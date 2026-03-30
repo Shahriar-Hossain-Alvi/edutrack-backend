@@ -162,7 +162,7 @@ class ResultResponseSchema(BaseModel):
     result_challenge_status: ResultChallengeStatus
     challenge_payment_time: datetime | None = None
     challenge_resolved_at: datetime | None = None
-    # result_status: ResultStatus
+    created_at: datetime
     semester_id: int
     semester: PopulatedMarksStudentsCurrentSemesterResponseSchema
     subject_id: int
