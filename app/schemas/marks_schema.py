@@ -147,3 +147,34 @@ class BatchResultPublishSchema(BaseModel):
     semester_id: int
     department_id: int
     session: str
+
+
+class ResultResponseSchema(BaseModel):
+    id: int
+    assignment_mark: float
+    class_test_mark: float
+    midterm_mark: float
+    final_exam_mark: float
+    total_mark: float
+    GPA: float
+    challenged_at: datetime | None = None
+    result_challenge_payment_status: bool | None = None
+    result_challenge_status: ResultChallengeStatus
+    challenge_payment_time: datetime | None = None
+    challenge_resolved_at: datetime | None = None
+    created_at: datetime
+    semester_id: int
+    semester: PopulatedMarksStudentsCurrentSemesterResponseSchema
+    subject_id: int
+    subject: MinimalSubjectResponseSchema
+    model_config = ConfigDict(from_attributes=True)
+
+# used in get_all_semesters_result_for_a_student router function
+
+
+class SemesterWiseResultResponseSchema(BaseModel):
+    semester_id: int
+    semester_name: str
+    session: str
+    marks: list[ResultResponseSchema]
+    model_config = ConfigDict(from_attributes=True)

@@ -1,12 +1,12 @@
 from collections import defaultdict
-from typing import Annotated, Any
+from typing import Any
 from loguru import logger
-from sqlalchemy import and_, func, join, select, update
+from sqlalchemy import and_, func, select, update
 from app.core.exceptions import DomainIntegrityError
 from app.core.integrity_error_parser import parse_integrity_error
 from app.models import Mark, ResultStatus
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException, Query, Request, status
+from fastapi import HTTPException, Request, status
 from app.models.mark_model import ResultChallengeStatus
 from app.models.semester_model import Semester
 from app.models.student_model import Student
@@ -16,9 +16,10 @@ from app.models.teacher_model import Teacher
 from app.models.user_model import User
 from app.schemas.marks_schema import BatchResultPublishSchema, MarksCreateSchema, MarksUpdateSchema
 from app.schemas.user_schema import UserOutSchema
+from app.services.notification_service import NotificationService
 from app.utils import check_existence
 from sqlalchemy.orm import joinedload
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.exc import IntegrityError
 import base64
 from fpdf import FPDF
@@ -219,7 +220,7 @@ class MarksService:
             joinedload(Mark.student).joinedload(Student.semester),
             # Mark -> Subject = get the subject info
             joinedload(Mark.subject)
-        ).order_by(Mark.created_at.desc())
+        ).order_by(Mark.updated_at.desc())
 
         # If teacher → restrict to subjects they teach
         if current_user.role == "teacher":
@@ -266,7 +267,11 @@ class MarksService:
         request: Request | None = None
     ):
         # check if mark exists
-        mark = await db.scalar(select(Mark).where(Mark.id == mark_id))
+        mark = await db.scalar(select(Mark).where(Mark.id == mark_id).options(
+            joinedload(Mark.semester),
+            joinedload(Mark.subject),
+            joinedload(Mark.student)
+        ))
 
         if not mark:
             raise HTTPException(
@@ -297,6 +302,18 @@ class MarksService:
                 if (update_dict["result_challenge_status"] == ResultChallengeStatus.CHALLENGED
                     and mark.result_status == ResultStatus.PUBLISHED
                         and mark.result_challenge_status == ResultChallengeStatus.NONE):
+
+                    # check if the challenge period is over
+                    current_date = datetime.now(timezone.utc)
+                    result_creation_date = mark.created_at
+                    challenge_period = current_date - result_creation_date
+
+                    if challenge_period.days >= 10:
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Challenge period(10 days) is over."
+                        )
+
                     # set result is challenged
                     mark.result_challenge_status = ResultChallengeStatus.CHALLENGED
                     mark.result_challenge_payment_status = False  # set payment status is pending
@@ -308,7 +325,7 @@ class MarksService:
             elif set(update_dict.keys()) != {"result_challenge_status"}:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Bad Request."
+                    detail="Bad Request! You can only challenge result once!"
                 )
             else:
                 raise HTTPException(
@@ -386,6 +403,27 @@ class MarksService:
         try:
             await db.commit()
             await db.refresh(mark)
+
+            # Single Result Publish notification
+            if "result_status" in update_dict and update_dict["result_status"] == ResultStatus.PUBLISHED:
+                await NotificationService.store_notification(
+                    db, mark.student.user_id, "Result Published", f"Your result for {mark.subject.subject_title} is now available."
+                )
+
+            # Payment Status notification
+            if "result_challenge_payment_status" in update_dict:
+                status_text = "Confirmed" if update_dict["result_challenge_payment_status"] else "Pending"
+                await NotificationService.store_notification(
+                    db, mark.student.user_id,
+                    "Payment Update", f"Your challenge payment for {mark.subject.subject_title} is {status_text}."
+                )
+
+            # ৩. Challenge Resolved notification
+            if mark.result_challenge_status == ResultChallengeStatus.RESOLVED:
+                await NotificationService.store_notification(
+                    db, mark.student.user_id,
+                    "Challenge Resolved", f"The challenge for {mark.subject.subject_title} has been resolved. Check your marks now."
+                )
 
             return {
                 "message": f"Mark status updated",
@@ -591,7 +629,7 @@ class MarksService:
             pdf.ln(10)
 
             # Marks table headers
-            # colum width calculation (total 190)
+            # column width calculation (total 190)
             w_sub = 65
             w_code = 25
             w_credits = 15
@@ -754,25 +792,15 @@ class MarksService:
             await db.execute(update_stmt)
             await db.commit()
 
-            return {"message": f"Successfullt updated {total_inserted_marks} marks."}
+            # store notification
+            await NotificationService.store_bulk_publish_notification(
+                db=db,
+                department_id=batch_publish_data.department_id,
+                semester_id=batch_publish_data.semester_id,
+                session=batch_publish_data.session
+            )
 
-            # statement = select(Mark).where(
-            #     and_(
-            #         Mark.semester_id == batch_publish_data.semester_id,
-            #         Mark.student.session == batch_publish_data.session,
-            #         Mark.student.department_id == batch_publish_data.department_id
-            #     )
-            # )
-
-            # all_marks = (await db.execute(statement)).scalars().all()
-
-            # if all_marks:
-            #     for mark in all_marks:
-            #         mark.result_status = ResultStatus.PUBLISHED
-
-            #     await db.commit()
-            #     return {"detail": "Marks published successfully."}
-
+            return {"message": f"Successfully updated {total_inserted_marks} marks."}
         except IntegrityError as e:
             # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state
             await db.rollback()
@@ -803,23 +831,79 @@ class MarksService:
                 error_message=readable_error, raw_error=raw_error_message
             )
 
-    # @staticmethod  # get all marks for a subject with semester filtering, subject filtering
-    # async def get_all_marks_for_a_student(
-    #     db: AsyncSession,
-    #     student_id: int,
-    #     semester_id: int | None = None,  # for filtering
-    #     subject_id: int | None = None  # for filtering
-    # ):
-    #     stmt = select(Mark).where(Mark.student_id == student_id)
-    #     if semester_id:
-    #         # this part will be added to the existing statement if the semester_id is provided
-    #         stmt = stmt.where(Mark.semester_id == semester_id)
-    #     if subject_id:
-    #         # this part will be added to the existing statement if the subject_id is provided
-    #         stmt = stmt.where(Mark.subject_id == subject_id)
-    #     marks = await db.scalars(stmt)
-    #     return MarksService.group_marks_by_semester(marks)
-    # @staticmethod  # get all students mark for a particular subject
-    # async def get_all_mark_for_a_subject(db: AsyncSession, subject_id: int):
-    #     marks = await db.scalars(select(Mark).where(Mark.subject_id == subject_id))
-    #     return marks
+    @staticmethod  # get all marks for a subject with semester filtering, subject filtering
+    async def get_all_semesters_result_for_a_student(
+        db: AsyncSession,
+        user_id: int
+    ):
+        # get students id
+        stmt = select(Student).where(Student.user_id == user_id)
+        student = (await db.execute(stmt)).scalar_one_or_none()
+
+        if not student:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+
+        student_id = student.id
+
+        # get all published marks for a student
+        statement = select(Mark).where(
+            and_(
+                Mark.student_id == student_id,
+                Mark.result_status == ResultStatus.PUBLISHED
+            )
+        ).options(
+            # Mark -> Semester = get the semester info
+            joinedload(Mark.semester),
+            # Mark -> Subject = get the subject info
+            joinedload(Mark.subject),
+            # Mark -> Student -> Semester = get the current semester info
+            joinedload(Mark.student)
+        ).order_by(Mark.updated_at.desc())
+
+        result = await db.execute(statement)
+        marks = result.unique().scalars().all()  # remove duplicates using unique()
+
+        # create a dictionary where the key will be department name, semester name and session
+        grouped = defaultdict(list)
+
+        for m in marks:
+            # extract the category key from every mark using a tuple
+            category_key = (
+                m.semester_id,
+                m.semester.semester_name,
+                m.student.session
+            )
+            # add the mark to the corresponding category
+            grouped[category_key].append(m)
+
+        # convert the data in a list of dictionaries
+        result = []
+        for key, items in grouped.items():
+            sem_id, sem_name, session_name = key
+
+            # get total offered subjects for that particular department and semester
+            total_offered_subjects_stmt = select(func.count(SubjectOfferings.id)).join(Subject, SubjectOfferings.subject_id == Subject.id).where(
+                and_(
+                    SubjectOfferings.department_id == student.department_id,
+                    Subject.semester_id == sem_id
+                )
+            )
+
+            total_offered = (await db.execute(total_offered_subjects_stmt)).scalar() or 0
+            total_fetched_marks = len(items)
+
+            if total_offered > 0 and total_fetched_marks == total_offered:
+                result.append({
+                    "semester_id": sem_id,
+                    "semester_name": sem_name,
+                    "session": session_name,
+                    "marks": items
+                })
+
+        return result
+
+    @staticmethod  # get all students mark for a particular subject
+    async def get_all_mark_for_a_subject(db: AsyncSession, subject_id: int):
+        marks = await db.scalars(select(Mark).where(Mark.subject_id == subject_id))
+        return marks
