@@ -24,6 +24,7 @@ from sqlalchemy.exc import IntegrityError
 import base64
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
+from fastapi import BackgroundTasks
 
 
 class MarksService:
@@ -261,10 +262,11 @@ class MarksService:
     @staticmethod  # update a mark
     async def update_mark(
         db: AsyncSession,
+        background_tasks: BackgroundTasks,
         update_data: MarksUpdateSchema,
         mark_id: int,
         current_user: UserOutSchema,
-        request: Request | None = None
+        request: Request | None = None,
     ):
         # check if mark exists
         mark = await db.scalar(select(Mark).where(Mark.id == mark_id).options(
@@ -406,24 +408,46 @@ class MarksService:
 
             # Single Result Publish notification
             if "result_status" in update_dict and update_dict["result_status"] == ResultStatus.PUBLISHED:
-                await NotificationService.store_notification(
+                email = await NotificationService.store_notification(
                     db, mark.student.user_id, "Result Published", f"Your result for {mark.subject.subject_title} is now available."
                 )
+
+                # send email to student
+                if email:
+                    background_tasks.add_task(
+                        NotificationService.send_single_email,
+                        email, "Result Published",
+                        f"Your result for {mark.subject.subject_title} is now available."
+                    )
 
             # Payment Status notification
             if "result_challenge_payment_status" in update_dict:
                 status_text = "Confirmed" if update_dict["result_challenge_payment_status"] else "Pending"
-                await NotificationService.store_notification(
+                email = await NotificationService.store_notification(
                     db, mark.student.user_id,
                     "Payment Update", f"Your challenge payment for {mark.subject.subject_title} is {status_text}."
                 )
 
+                if email:
+                    background_tasks.add_task(
+                        NotificationService.send_single_email,
+                        email, "Payment Status Update",
+                        f"Your challenge payment for {mark.subject.subject_title} is {status_text}."
+                    )
+
             # ৩. Challenge Resolved notification
             if mark.result_challenge_status == ResultChallengeStatus.RESOLVED:
-                await NotificationService.store_notification(
+                email = await NotificationService.store_notification(
                     db, mark.student.user_id,
                     "Challenge Resolved", f"The challenge for {mark.subject.subject_title} has been resolved. Check your marks now."
                 )
+
+                if email:
+                    background_tasks.add_task(
+                        NotificationService.send_single_email,
+                        email, "Challenge Resolved",
+                        f"The challenge for {mark.subject.subject_title} has been resolved. Check your marks now."
+                    )
 
             return {
                 "message": f"Mark status updated",
@@ -713,6 +737,7 @@ class MarksService:
     @staticmethod  # batch publish marks
     async def batch_publish_marks(
         db: AsyncSession,
+        background_tasks: BackgroundTasks,
         batch_publish_data: BatchResultPublishSchema,
         request: Request | None = None
     ):
@@ -797,7 +822,8 @@ class MarksService:
                 db=db,
                 department_id=batch_publish_data.department_id,
                 semester_id=batch_publish_data.semester_id,
-                session=batch_publish_data.session
+                session=batch_publish_data.session,
+                background_tasks=background_tasks
             )
 
             return {"message": f"Successfully updated {total_inserted_marks} marks."}

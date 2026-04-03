@@ -5,3 +5,4 @@ from .authenticated_user import get_current_user
 from .exceptions import DomainIntegrityError
 from .integrity_error_parser import parse_integrity_error
 from .logging_config import setup_logging, InterceptHandler
+from .mail import fastmail
