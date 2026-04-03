@@ -4,7 +4,7 @@ from datetime import datetime
 
 class NotificationBaseSchema(BaseModel):
     message: str
-    title: str
+    # title: str
     user_id: int
 
 
