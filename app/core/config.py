@@ -1,6 +1,6 @@
 # import os
 from typing import Any, List
-from pydantic import field_validator
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     ADMIN_PASSWORD: str
     SUPER_ADMIN_EMAIL: str
     SUPER_ADMIN_PASSWORD: str
+    MAIL_USERNAME: str
+    MAIL_APP_PASSWORD: SecretStr
 
     # This reads the string and splits it into a list
     CORS_ORIGINS: Any = []  # Default fallback

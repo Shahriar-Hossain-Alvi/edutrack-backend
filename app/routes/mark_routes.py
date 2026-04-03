@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.db import get_db_session
 from app.permissions import ensure_roles
 from app.core.authenticated_user import get_current_user
+from fastapi import BackgroundTasks
 
 
 router = APIRouter(
@@ -131,13 +132,14 @@ async def get_all_semesters_result_for_a_student(
 @router.patch("/batch_publish")
 async def batch_publish_marks(
     request: Request,
+    background_tasks: BackgroundTasks,
     batch_publish_data: BatchResultPublishSchema,
     authorized_user: UserOutSchema = Depends(
         ensure_roles(["super_admin", "admin"])),
     db: AsyncSession = Depends(get_db_session),
 ):
     try:
-        return await MarksService.batch_publish_marks(db, batch_publish_data, request)
+        return await MarksService.batch_publish_marks(db, background_tasks, batch_publish_data, request)
     except HTTPException:
         raise
     except DomainIntegrityError as de:
@@ -162,6 +164,7 @@ async def batch_publish_marks(
 @router.patch("/{mark_id}")
 async def update_a_mark(
     request: Request,
+    background_tasks: BackgroundTasks,
     mark_id: int,
     mark_data: MarksUpdateSchema,
     authorized_user: UserOutSchema = Depends(
@@ -171,7 +174,7 @@ async def update_a_mark(
     # attach action
     request.state.action = "UPDATE MARK"
     try:
-        return await MarksService.update_mark(db, mark_data, mark_id, authorized_user, request)
+        return await MarksService.update_mark(db, background_tasks, mark_data, mark_id, authorized_user, request)
     except DomainIntegrityError as de:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
