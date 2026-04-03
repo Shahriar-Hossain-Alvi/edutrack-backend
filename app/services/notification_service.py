@@ -120,3 +120,10 @@ class NotificationService:
             title,
             text
         )
+
+    @staticmethod  # get last 5 notification
+    async def get_latest_notification_for_a_user(db: AsyncSession, user_id: int):
+        stmt = select(Notification).where(Notification.user_id == user_id).order_by(
+            Notification.created_at.desc()).limit(5)
+        notifications = await db.execute(stmt)
+        return notifications.scalars().all()
