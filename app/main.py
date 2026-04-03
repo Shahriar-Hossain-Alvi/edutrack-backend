@@ -5,7 +5,7 @@ from app.core.logging_config import setup_logging
 from fastapi.middleware.cors import CORSMiddleware
 from app.middleware.audit_log_middleware import AuditMiddleware
 from app.middleware.inject_token import TokenInjectionFromCookieToHeaderMiddleware
-from app.routes import department_routes, heath_check, login_logout, mark_routes, semester_routes, student_routes, subject_offering_route, subject_routes, user_routes, teacher_routes, admin_dashboard_routes
+from app.routes import department_routes, heath_check, login_logout, mark_routes, semester_routes, student_routes, subject_offering_route, subject_routes, user_routes, teacher_routes, admin_dashboard_routes, notification_routes
 from app.core.config import settings
 
 # setup logging
@@ -42,6 +42,7 @@ app.include_router(semester_routes.router, prefix="/api")
 app.include_router(subject_routes.router, prefix="/api")
 app.include_router(subject_offering_route.router, prefix="/api")
 app.include_router(mark_routes.router, prefix="/api")
+app.include_router(notification_routes.router, prefix="/api")
 
 
 if __name__ == "__main__":

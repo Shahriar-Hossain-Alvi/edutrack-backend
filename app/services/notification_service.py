@@ -1,9 +1,13 @@
+from typing import Any
 from fastapi_mail import MessageSchema, MessageType
-from fastapi import BackgroundTasks
+from fastapi import BackgroundTasks, Request
 from loguru import logger
 from pydantic import EmailStr
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import and_, func, select
+from app.core.exceptions import DomainIntegrityError
+from app.core.integrity_error_parser import parse_integrity_error
 from app.models.notification_model import Notification
 from app.models.semester_model import Semester
 from app.models.student_model import Student
@@ -120,3 +124,57 @@ class NotificationService:
             title,
             text
         )
+
+    @staticmethod  # get last 5 notification
+    async def get_latest_notification_for_a_user(db: AsyncSession, user_id: int):
+        stmt = select(Notification).where(Notification.user_id == user_id).order_by(
+            Notification.created_at.desc()).limit(5)
+        notifications = await db.execute(stmt)
+        return notifications.scalars().all()
+
+    @staticmethod  # mark notification as read
+    async def mark_notification_as_read(
+        db: AsyncSession,
+        notification_id: int,
+        update_data: dict,
+        request: Request | None = None,
+    ):
+        try:
+            stmt = select(Notification).where(
+                Notification.id == notification_id)
+            result = await db.execute(stmt)
+            notification = result.scalars().one()
+
+            is_read = update_data["is_read"]
+
+            notification.is_read = is_read
+
+            await db.commit()
+            return {
+                "message": "Notification marked as read successfully"
+            }
+
+        except IntegrityError as e:
+            # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state
+            await db.rollback()
+
+            # generally the PostgreSQL's error message will be in e.orig.args
+            raw_error_message = str(e.orig) if e.orig else str(e)
+            readable_error = parse_integrity_error(raw_error_message)
+
+            logger.error(
+                f"Integrity error while marking notification as read: {e}")
+            logger.error(f"Readable Error: {readable_error}")
+
+            # attach audit payload safely
+            if request:
+                payload: dict[str, Any] = {
+                    "raw_error": raw_error_message,
+                    "readable_error": readable_error,
+                }
+
+                request.state.audit_payload = payload
+
+            raise DomainIntegrityError(
+                error_message=readable_error, raw_error=raw_error_message
+            )
