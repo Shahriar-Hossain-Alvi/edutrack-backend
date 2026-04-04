@@ -2,6 +2,7 @@ from typing import Any
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import and_, asc, desc, select, or_
+from app.core.cache_user import CacheService
 from app.core.exceptions import DomainIntegrityError
 from app.core.integrity_error_parser import parse_integrity_error
 from app.core.pw_hash import verify_password
@@ -178,6 +179,10 @@ class UserService:
             await db.refresh(user)
 
             logger.success("User updated successfully")
+
+            # clear old user data from cache
+            CacheService.clear_user(user.username)
+
             return {
                 "message": f"User updated successfully for username: {user.username}, role: {user.role.value}"
             }
@@ -260,6 +265,10 @@ class UserService:
 
             await db.commit()
             logger.success("Password updated")
+
+            # clear old user data from cache
+            CacheService.clear_user(user.username)
+
             return {
                 "message": f"Password updated."
             }
