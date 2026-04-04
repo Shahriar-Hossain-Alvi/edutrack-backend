@@ -1,7 +1,9 @@
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from app.core.cache_user import CacheService
 from app.core.jwt import decode_access_token
 from app.db.db import get_db_session
 from app.models import User
@@ -33,6 +35,13 @@ async def get_current_user(
             detail="Invalid token payload"
         )
 
+    # get the user from cache if exists
+    cached_user = CacheService.get_user(username)
+    if cached_user:
+        logger.success(f"User {username} found in cache")
+        return cached_user
+
+    # get the user from database if not in cache
     statement = select(User).where(User.username == username)
     result = await db.execute(statement)
     user = result.scalar_one_or_none()
@@ -43,5 +52,9 @@ async def get_current_user(
 
     # attach user_id to request.state
     request.state.user_id = user.id
+
+    # set user in cache
+    CacheService.set_user(user.username, user)
+    logger.success(f"Setting user {user.username} in cache")
 
     return user

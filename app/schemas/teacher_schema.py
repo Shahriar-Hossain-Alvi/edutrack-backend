@@ -52,6 +52,20 @@ class TeacherResponseSchemaForSubjectOfferingSearch(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class TeacherProfileResponseSchemaNested(TeacherBaseSchema):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    user: UserOutSchema
+    department: DepartmentDataForMinimalTeacher | None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TeacherProfileResponseSchemaWithCourseCount(BaseModel):
+    user_data: TeacherProfileResponseSchemaNested
+    total_assigned_courses: int
+
+
 class TeachersPublicDataResponse(BaseModel):
     name: str
     photo_url: str
