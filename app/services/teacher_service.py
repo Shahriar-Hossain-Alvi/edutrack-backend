@@ -1,17 +1,18 @@
 from typing import Any
 from loguru import logger
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import DomainIntegrityError
 from app.core.integrity_error_parser import parse_integrity_error
 from app.core.pw_hash import hash_password
+from app.models.subject_offerings_model import SubjectOfferings
 from app.models.user_model import User
 from app.models.teacher_model import Teacher
 from app.models.department_model import Department
 from app.schemas.teacher_schema import TeacherCreateSchema, TeacherUpdateByAdminSchema
 from app.utils import check_existence
 from fastapi import HTTPException, Request, status
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.exc import IntegrityError
 from app.utils import delete_image_from_cloudinary
 from app.utils.mask_sensitive_data import sanitize_payload
@@ -110,15 +111,28 @@ class TeacherService:
     #     teachers = await db.scalars(select(Teacher))
     #     return teachers.all()
 
-    # @staticmethod # get single teacher
-    # async def get_teacher(db: AsyncSession, teacher_id: int):
-    #     teacher = await db.scalar(select(Teacher).where(Teacher.id == teacher_id))
+    @staticmethod  # get single teacher
+    async def get_teacher(db: AsyncSession, user_id: int):
+        stmt = select(Teacher).where(Teacher.user_id == user_id).options(
+            joinedload(Teacher.department),
+            joinedload(Teacher.user)
+        )
 
-    #     if not teacher:
-    #         raise HTTPException(
-    #             status_code=status.HTTP_404_NOT_FOUND, detail="Teacher not found")
+        teacher = await db.scalar(stmt)
 
-    #     return teacher
+        if not teacher:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Teacher not found")
+
+        total_assigned_courses_stmt = select(func.count(SubjectOfferings.id)).where(
+            SubjectOfferings.taught_by_id == teacher.id
+        )
+        total_assigned_courses = await db.scalar(total_assigned_courses_stmt)
+
+        return {
+            "user_data": teacher,
+            "total_assigned_courses": total_assigned_courses
+        }
 
     # @staticmethod # group teachers by department
     # async def grouped_teachers_by_department(

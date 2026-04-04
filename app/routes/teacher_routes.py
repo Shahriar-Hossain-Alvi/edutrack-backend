@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.authenticated_user import get_current_user
 from app.core.exceptions import DomainIntegrityError
 from app.permissions import ensure_roles
 from app.db.db import get_db_session
-from app.schemas.teacher_schema import TeacherCreateSchema, TeacherResponseSchemaForSubjectOfferingSearch, TeacherUpdateByAdminSchema
+from app.schemas.teacher_schema import TeacherCreateSchema, TeacherProfileResponseSchemaWithCourseCount, TeacherResponseSchemaForSubjectOfferingSearch, TeacherUpdateByAdminSchema
 from app.schemas.user_schema import UserOutSchema
 from app.services.teacher_service import TeacherService
 
@@ -109,21 +108,25 @@ async def get_all_teachers_with_minimal_data(
 #             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
 
-# get single teacher
-# @router.get("/{id}", response_model=TeacherResponseSchema)
-# async def get_single_teacher(
-#     id: int,
-#     db: AsyncSession = Depends(get_db_session),
-#     current_user: UserOutSchema = Depends(get_current_user),
-# ):
+# get single teacher data (profile page data)
+@router.get("/{id}", response_model=TeacherProfileResponseSchemaWithCourseCount)
+async def get_single_teacher(
+    id: int,
+    db: AsyncSession = Depends(get_db_session),
+    authorized_user: UserOutSchema = Depends(
+        ensure_roles(["teacher"])),
+):
+    if authorized_user.id != id:
+        raise HTTPException(
+            status_code=400, detail="You are not authorized to view this record.")
 
-#     try:
-#         return await TeacherService.get_teacher(db, id)
-#     except HTTPException:
-#         raise
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+    try:
+        return await TeacherService.get_teacher(db, id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 # update teacher by self
