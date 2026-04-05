@@ -136,7 +136,7 @@ class SubjectsWithDepartmentResponseSchema(BaseModel):
     subject_id: int
 
     department: SubjectOfferingDepartmentResponseSchema
-    subject: SubjectOfferingForMarkingSubjectResponseSchema
+    subject: SubjectWithSemesterResponseSchema
     model_config = ConfigDict(from_attributes=True)
 
 
