@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     SUPER_ADMIN_PASSWORD: str
     MAIL_USERNAME: str
     MAIL_APP_PASSWORD: SecretStr
+    APP_ENV: str
 
     # This reads the string and splits it into a list
     CORS_ORIGINS: Any = []  # Default fallback
