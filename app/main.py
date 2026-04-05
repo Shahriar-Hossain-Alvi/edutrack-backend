@@ -11,9 +11,21 @@ from app.core.config import settings
 # setup logging
 setup_logging()
 
-app = FastAPI(
-    swagger_ui_parameters={"withCredentials": True}
-)
+# env to check if in dev or prod
+ENV = settings.APP_ENV or "development"
+
+# disable swagger or redoc in production
+if ENV == "production":
+    app = FastAPI(
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None
+    )
+else:
+    app = FastAPI(
+        # send HttpOnly Cookies to Swagger UI
+        swagger_ui_parameters={"withCredentials": True}
+    )
 
 app.add_middleware(
     CORSMiddleware,
