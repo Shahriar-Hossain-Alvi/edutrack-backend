@@ -305,7 +305,6 @@ class SubjectOfferingService:
         students_current_semester_id: int,
         students_department_id: int,
         current_user: UserOutSchema,
-        current_teacher_id: int | None = None
     ):
         stmt = select(SubjectOfferings)\
             .where(
@@ -325,8 +324,16 @@ class SubjectOfferingService:
 
         # restrict subject list for teachers
         if current_user.role.value == "teacher":
+            get_teacher_stmt = select(Teacher).where(
+                Teacher.user_id == current_user.id)
+            teacher = (await db.execute(get_teacher_stmt)).scalar_one_or_none()
+
+            if not teacher:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND, detail="Teacher not found")
+
             stmt = stmt.where(
-                SubjectOfferings.taught_by_id == current_user.id
+                SubjectOfferings.taught_by_id == teacher.id
             )
 
         result = await db.execute(stmt)

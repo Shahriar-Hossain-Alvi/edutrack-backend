@@ -294,7 +294,7 @@ class MarksService:
             ))
             if not is_taught_by_this_teacher:
                 raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
+                    status_code=status.HTTP_400_BAD_REQUEST,
                     detail="You are not authorized to update mark for this subject.")
             is_teacher_authorized = True
 

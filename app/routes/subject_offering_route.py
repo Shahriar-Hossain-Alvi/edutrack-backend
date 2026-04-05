@@ -88,14 +88,13 @@ async def get_all_subject_offerings(
 async def get_offered_subject_lists_for_marking(
     students_current_semester_id: int,
     students_department_id: int,
-    current_teacher_id: int | None = None,
     authorized_user: UserOutSchema = Depends(
         ensure_roles(["super_admin", "admin", "teacher"])),
     db: AsyncSession = Depends(get_db_session),
 ):
 
     try:
-        return await SubjectOfferingService.get_offered_subjects_for_marking(db, students_current_semester_id, students_department_id, authorized_user, current_teacher_id)
+        return await SubjectOfferingService.get_offered_subjects_for_marking(db, students_current_semester_id, students_department_id, authorized_user)
     except HTTPException:
         raise
     except Exception as e:
@@ -107,7 +106,9 @@ async def get_offered_subject_lists_for_marking(
 @router.get("/studentsOfferedSubjects/{user_id}", response_model=list[StudentsOfferedSubjectsResponseSchema])
 async def students_offered_subjects(
     user_id: int,
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db_session),
+    authorized_user: UserOutSchema = Depends(
+        ensure_roles(["student"])),
 ):
     try:
         return await SubjectOfferingService.students_offered_subjects(db, user_id)
@@ -120,12 +121,12 @@ async def students_offered_subjects(
 
 
 # get assigned subjects for a teacher
-@router.get("/teachersAssignedSubjects/{user_id}",
-            response_model=list[TeachersAssignedSubjectsResponseSchema]
-            )
+@router.get("/teachersAssignedSubjects/{user_id}", response_model=list[TeachersAssignedSubjectsResponseSchema])
 async def teachers_assigned_subjects(
     user_id: int,
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db_session),
+    authorized_user: UserOutSchema = Depends(
+        ensure_roles(["teacher"])),
 ):
     try:
         return await SubjectOfferingService.teachers_assigned_subjects(db, user_id)
