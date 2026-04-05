@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import DomainIntegrityError
@@ -6,7 +6,7 @@ from app.db.db import get_db_session
 from app.permissions.role_checks import ensure_roles
 from app.schemas.notification_schema import NotificationResponseSchema
 from app.services.notification_service import NotificationService
-from app.core.authenticated_user import get_current_user
+from app.core import get_current_user, manager
 from app.schemas.user_schema import UserOutSchema
 
 
@@ -14,6 +14,20 @@ router = APIRouter(
     prefix="/notifications",  # eg: /users/, /users/:id
     tags=["notifications"]  # for swagger
 )
+
+
+# send notification through websocket
+@router.websocket("/ws/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, user_id: int):
+    await manager.connect(user_id, websocket)
+    try:
+        while True:
+            # keep the connection alive
+            data = await websocket.receive_text()
+            logger.success("Websocket message received")
+    except Exception:
+        logger.critical("Websocket connection closed")
+        manager.disconnect(user_id)
 
 
 # get latest notifications for a user

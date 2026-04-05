@@ -409,7 +409,7 @@ class MarksService:
             # Single Result Publish notification
             if "result_status" in update_dict and update_dict["result_status"] == ResultStatus.PUBLISHED:
                 email = await NotificationService.store_notification(
-                    db, mark.student.user_id, "Result Published", f"Your result for {mark.subject.subject_title} is now available."
+                    db, mark.student.user_id, "Result Published", f"Your result for {mark.subject.subject_title} is now available.", type="RESULT_PUBLISHED"
                 )
 
                 # send email to student
@@ -425,7 +425,7 @@ class MarksService:
                 status_text = "Confirmed" if update_dict["result_challenge_payment_status"] else "Pending"
                 email = await NotificationService.store_notification(
                     db, mark.student.user_id,
-                    "Payment Update", f"Your challenge payment for {mark.subject.subject_title} is {status_text}."
+                    "Payment Update", f"Your challenge payment for {mark.subject.subject_title} is {status_text}.", type="PAYMENT_STATUS_UPDATE"
                 )
 
                 if email:
@@ -439,7 +439,7 @@ class MarksService:
             if mark.result_challenge_status == ResultChallengeStatus.RESOLVED:
                 email = await NotificationService.store_notification(
                     db, mark.student.user_id,
-                    "Challenge Resolved", f"The challenge for {mark.subject.subject_title} has been resolved. Check your marks now."
+                    "Challenge Resolved", f"The challenge for {mark.subject.subject_title} has been resolved. Check your marks now.", type="CHALLENGE_RESOLVED"
                 )
 
                 if email:

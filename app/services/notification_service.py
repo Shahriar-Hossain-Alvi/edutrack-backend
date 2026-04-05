@@ -12,7 +12,7 @@ from app.models.notification_model import Notification
 from app.models.semester_model import Semester
 from app.models.student_model import Student
 from app.models.user_model import User
-from app.core import fastmail
+from app.core import fastmail, manager
 
 
 class NotificationService:
@@ -50,7 +50,8 @@ class NotificationService:
         db: AsyncSession,
         user_id: int,
         title: str,
-        message: str
+        message: str,
+        type: str
     ):
         new_notification = Notification(
             user_id=user_id,
@@ -65,6 +66,15 @@ class NotificationService:
         email = (await db.execute(user_stmt)).scalar()
 
         await db.commit()
+
+        notification_payload = {
+            "type": type,
+            "title": title,
+            "message": message
+        }
+
+        await manager.send_personal_message(notification_payload, user_id)
+
         return email
 
     @staticmethod  # store bulk notification
@@ -102,7 +112,7 @@ class NotificationService:
         title = "Result Published"
         text = f"Your result for {semester_name} semester has been published"
 
-        # save notification in db
+        # 1. save notification in db
         notifications = [
             Notification(
                 user_id=user.id,
@@ -117,13 +127,23 @@ class NotificationService:
         # create email lists
         email_list = [user.email for user in user_data]
 
-        # background task for sending email
+        # 2. background task for sending email
         background_tasks.add_task(
             NotificationService.send_bulk_emails,
             email_list,
             title,
             text
         )
+
+        # 3. send notification using ws
+        for user in user_data:
+            notification_payload = {
+                "type": "RESULT_PUBLISHED",
+                "title": title,
+                "message": text
+            }
+
+            await manager.send_personal_message(notification_payload, user.id)
 
     @staticmethod  # get last 5 notification
     async def get_latest_notification_for_a_user(db: AsyncSession, user_id: int):
