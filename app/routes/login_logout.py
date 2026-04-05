@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import DomainIntegrityError
-from app.services.user_login_logout import login_user, logout_user, refresh_access_token
+from app.services.user_login_logout import dummy_user_login, login_user, logout_user, refresh_access_token
 from app.db.db import get_db_session
 
 
@@ -99,5 +99,39 @@ async def logout(
             }
 
         logger.critical("LOGIN FAILED FROM ROUTER")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
+
+
+# login route setup with httponly cookies
+@router.post("/dummy_user_login")
+async def dummy_login(
+        request: Request,
+        response: Response,
+        form_data: OAuth2PasswordRequestForm = Depends(),
+        db: AsyncSession = Depends(get_db_session)):
+
+    # attach action
+    request.state.action = "DUMMY USER LOGIN"
+
+    try:
+        return await dummy_user_login(db, form_data.username, form_data.password, response, request)
+    except DomainIntegrityError as de:
+        logger.error(f"Integrity error while login {str(de)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=de.error_message
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.critical(f"Unexpected Error: {e}")
+        logger.critical("LOGIN FAILED FROM ROUTER")
+        # attach audit payload
+        if request:
+            request.state.audit_payload = {
+                "raw_error": str(e),
+                "exception_type": type(e).__name__,
+            }
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
