@@ -380,3 +380,48 @@ class SubjectOfferingService:
             })
 
         return semester_subjects
+
+    @staticmethod  # get teachers assigned subjects
+    async def teachers_assigned_subjects(
+        db: AsyncSession,
+        user_id: int
+    ):
+        # get teachers
+        stmt = select(Teacher).where(Teacher.user_id == user_id)
+        teacher = (await db.execute(stmt)).scalar_one_or_none()
+
+        if not teacher:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Teacher not found")
+
+        # get assigned subjects
+        stmt = select(SubjectOfferings).where(SubjectOfferings.taught_by_id == teacher.id).options(
+            joinedload(SubjectOfferings.subject).joinedload(
+                Subject.semester),
+            joinedload(SubjectOfferings.department)
+        )
+
+        result = await db.execute(stmt)
+        subjects = result.scalars().all()
+
+        # group subjects based on semesters
+        grouped = defaultdict(list)
+
+        for s in subjects:
+            # extract the category key from every mark using a tuple
+            category_key = (
+                s.department.id,
+                s.department.department_name,
+            )
+            grouped[category_key].append(s)
+
+        # format the data
+        assigned_subjects = []
+        for (dept_id, dept_name), subjects in grouped.items():
+            assigned_subjects.append({
+                "department_id": dept_id,
+                "department_name": dept_name,
+                "subjects": subjects
+            })
+
+        return assigned_subjects

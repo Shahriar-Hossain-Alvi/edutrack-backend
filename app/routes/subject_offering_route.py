@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import DomainIntegrityError
 from app.db.db import get_db_session
 from app.permissions import ensure_roles
-from app.schemas.subject_offering_schema import AllSubjectOfferingsResponseSchema, StudentsOfferedSubjectsResponseSchema, SubjectOfferingCreateSchema, SubjectOfferingUpdateSchema, SubjectOfferingListForMarkingResponseSchema
+from app.schemas.subject_offering_schema import AllSubjectOfferingsResponseSchema, StudentsOfferedSubjectsResponseSchema, SubjectOfferingCreateSchema, SubjectOfferingUpdateSchema, SubjectOfferingListForMarkingResponseSchema, TeachersAssignedSubjectsResponseSchema
 from app.schemas.user_schema import UserOutSchema
 from app.services.subject_offering_service import SubjectOfferingService
 
@@ -104,15 +104,31 @@ async def get_offered_subject_lists_for_marking(
 
 
 # get offered subjects based on students department
-@router.get("/studentsOfferedSubjects/{user_id}",
-            response_model=list[StudentsOfferedSubjectsResponseSchema]
-            )
+@router.get("/studentsOfferedSubjects/{user_id}", response_model=list[StudentsOfferedSubjectsResponseSchema])
 async def students_offered_subjects(
     user_id: int,
     db: AsyncSession = Depends(get_db_session)
 ):
     try:
         return await SubjectOfferingService.students_offered_subjects(db, user_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.critical(f"Get my offered subjects unexpected Error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+# get assigned subjects for a teacher
+@router.get("/teachersAssignedSubjects/{user_id}",
+            response_model=list[TeachersAssignedSubjectsResponseSchema]
+            )
+async def teachers_assigned_subjects(
+    user_id: int,
+    db: AsyncSession = Depends(get_db_session)
+):
+    try:
+        return await SubjectOfferingService.teachers_assigned_subjects(db, user_id)
     except HTTPException:
         raise
     except Exception as e:

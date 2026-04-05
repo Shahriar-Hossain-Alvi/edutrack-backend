@@ -101,7 +101,7 @@ class SubjectOfferingListForMarkingResponseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# used in studentsOfferedSubjects router
+# used in students_offered_subjects router
 class SubjectsWithTaughtByResponseSchema(BaseModel):
     id: int
     taught_by: SubjectOfferingTaughtByResponseSchema
@@ -113,4 +113,36 @@ class StudentsOfferedSubjectsResponseSchema(BaseModel):
     semester_id: int
     semester_name: str
     subjects: list[SubjectsWithTaughtByResponseSchema]
+    model_config = ConfigDict(from_attributes=True)
+
+
+# used in teachers_assigned_subjects router
+class SubjectWithSemesterResponseSchema(BaseModel):
+    id: int
+    semester_id: int
+    subject_title: str
+    subject_code: str
+    credits: float
+    is_general: bool
+    semester: SubjectOfferingSemesterResponseSchema
+    model_config = ConfigDict(from_attributes=True)
+
+
+# used in teachers_assigned_subjects router
+class SubjectsWithDepartmentResponseSchema(BaseModel):
+    id: int
+    taught_by_id: int
+    department_id: int
+    subject_id: int
+
+    department: SubjectOfferingDepartmentResponseSchema
+    subject: SubjectOfferingForMarkingSubjectResponseSchema
+    model_config = ConfigDict(from_attributes=True)
+
+
+# used in teachers_assigned_subjects router
+class TeachersAssignedSubjectsResponseSchema(BaseModel):
+    department_id: int
+    department_name: str
+    subjects: list[SubjectsWithDepartmentResponseSchema]
     model_config = ConfigDict(from_attributes=True)
