@@ -19,6 +19,8 @@ from app.schemas.user_schema import UserOutSchema
 from app.utils import check_existence
 from sqlalchemy.exc import IntegrityError
 
+from app.utils.paginator import Paginator
+
 
 class SubjectOfferingService:
 
@@ -115,20 +117,11 @@ class SubjectOfferingService:
                 error_message=readable_error, raw_error=raw_error_message
             )
 
-    # get single subject offering
-    # @staticmethod
-    # async def get_subject_offering(db: AsyncSession, subject_offering_id: int):
-    #     subject_offering = await db.scalar(select(SubjectOfferings).where(SubjectOfferings.id == subject_offering_id))
-
-    #     if not subject_offering:
-    #         raise HTTPException(
-    #             status_code=status.HTTP_404_NOT_FOUND, detail="Subject offering not found")
-
-    #     return subject_offering
-
     @staticmethod  # get all subject offerings in Assign Course page
     async def get_subject_offerings(
         db: AsyncSession,
+        page: int,
+        size: int,
         order_by_filter: str | None = None,
         filter_by_department: int | None = None,
         search: str | None = None
@@ -162,10 +155,12 @@ class SubjectOfferingService:
             )
 
         try:
-            result = await db.execute(query)
-            subject_offerings = result.scalars().unique().all()
+            # result = await db.execute(query)
+            # subject_offerings = result.scalars().unique().all()
 
-            return subject_offerings
+            # return subject_offerings
+            return await Paginator.paginate(db, query, page, size)
+
         except IntegrityError as e:
             # Important: rollback as soon as an error occurs. It recovers the session from 'failed' state and puts it back in 'clean' state to save the Audit Log
             await db.rollback()

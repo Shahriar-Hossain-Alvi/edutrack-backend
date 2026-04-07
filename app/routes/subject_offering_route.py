@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import DomainIntegrityError
 from app.db.db import get_db_session
 from app.permissions import ensure_roles
+from app.schemas.pagination_schema import PaginatedResponse
 from app.schemas.subject_offering_schema import AllSubjectOfferingsResponseSchema, StudentsOfferedSubjectsResponseSchema, SubjectOfferingCreateSchema, SubjectOfferingUpdateSchema, SubjectOfferingListForMarkingResponseSchema, TeachersAssignedSubjectsResponseSchema
 from app.schemas.user_schema import UserOutSchema
 from app.services.subject_offering_service import SubjectOfferingService
@@ -50,18 +51,20 @@ async def create_new_subject_offering(
 
 
 # get all subject offerings: used in Assign Course page to update existing subject offering by admin, super admin
-@router.get("/", response_model=list[AllSubjectOfferingsResponseSchema])
+@router.get("/", response_model=PaginatedResponse[AllSubjectOfferingsResponseSchema])
 async def get_all_subject_offerings(
     request: Request,
     order_by_filter: str | None = None,
     filter_by_department: int | None = None,
     search: str | None = None,
+    page: int = 1,
+    size: int = 10,
     authorized_user: UserOutSchema = Depends(
         ensure_roles(["super_admin", "admin"])),
     db: AsyncSession = Depends(get_db_session)
 ):
     try:
-        return await SubjectOfferingService.get_subject_offerings(db, order_by_filter, filter_by_department, search)
+        return await SubjectOfferingService.get_subject_offerings(db, page, size, order_by_filter, filter_by_department, search)
     except DomainIntegrityError as de:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -136,21 +139,6 @@ async def teachers_assigned_subjects(
         logger.critical(f"Get my offered subjects unexpected Error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-
-    # @router.get("/{subject_offering_id}")
-    # async def get_single_subject_offering(
-    #     subject_offering_id: int,
-    #     authorized_user: UserOutSchema = Depends(
-    #         ensure_roles(["super_admin", "admin", "teacher"])),
-    #     db: AsyncSession = Depends(get_db_session),
-    # ):
-    #     try:
-    #         return await SubjectOfferingService.get_subject_offering(db, subject_offering_id)
-    #     except HTTPException:
-    #         raise
-    #     except Exception as e:
-    #         raise HTTPException(
-    #             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @router.patch("/{subject_offering_id}")
