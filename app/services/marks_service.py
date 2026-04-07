@@ -26,6 +26,8 @@ from fpdf import FPDF
 from fpdf.enums import XPos, YPos
 from fastapi import BackgroundTasks
 
+from app.utils.paginator import Paginator
+
 
 class MarksService:
 
@@ -204,6 +206,8 @@ class MarksService:
     @staticmethod  # get result for a particular department and semester and session
     async def get_all_marks_with_filters(
         db: AsyncSession,
+        page: int,
+        size: int,
         current_user: UserOutSchema,
         target_semester_id: int | None = None,
         target_department_id: int | None = None,
@@ -254,10 +258,20 @@ class MarksService:
         if filters:
             statement = statement.where(and_(*filters))
 
-        result = await db.execute(statement)
-        marks = result.unique().scalars().all()  # remove duplicates using unique()
+        # result = await db.execute(statement)
+        # marks = result.unique().scalars().all()  # remove duplicates using unique()
+        paginated_data = await Paginator.paginate(db, statement, page, size)
 
-        return MarksService.group_marks_by_category(marks)
+        grouped_items = MarksService.group_marks_by_category(
+            paginated_data["items"])
+
+        return {
+            "total": paginated_data["total"],
+            "page": paginated_data["page"],
+            "size": paginated_data["size"],
+            "pages": paginated_data["pages"],
+            "items": grouped_items
+        }
 
     @staticmethod  # update a mark
     async def update_mark(
