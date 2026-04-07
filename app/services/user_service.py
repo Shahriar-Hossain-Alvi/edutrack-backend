@@ -93,11 +93,11 @@ class UserService:
     @staticmethod
     async def get_users(
         db: AsyncSession,
+        page: int,
+        size: int,
         user_role: str | None = None,
         department_search: str | None = None,
         order_by_filter: str | None = None,
-        page: int = 1,
-        size: int = 10
     ):
         query = (
             select(User)
@@ -130,8 +130,8 @@ class UserService:
         if order_by_filter == "desc":
             query = query.order_by(desc(User.id))
 
-        result = await db.execute(query)
-        all_users = result.scalars().unique().all()  # unique
+        # result = await db.execute(query)
+        # all_users = result.scalars().unique().all()  # unique
 
         # return all_users
         return await Paginator.paginate(db, query, page, size)

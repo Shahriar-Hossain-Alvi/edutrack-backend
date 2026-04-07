@@ -72,7 +72,7 @@ async def get_all_users(
         ensure_roles(["super_admin", "admin"]))
 ):
     try:
-        users = await UserService.get_users(db, user_role, department_search, order_by_filter, page, size)
+        users = await UserService.get_users(db, page, size, user_role, department_search, order_by_filter)
         return users
     except HTTPException:
         raise

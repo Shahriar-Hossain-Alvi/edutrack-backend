@@ -22,7 +22,7 @@ class Paginator:
         # execute main query
         paginated_query = query.offset(offset).limit(size)
         result = await db.execute(paginated_query)
-        items = result.scalars().all()
+        items = result.scalars().unique().all()
 
         return {
             "total": total,

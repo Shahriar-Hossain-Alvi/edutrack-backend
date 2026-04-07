@@ -12,6 +12,8 @@ from fastapi import HTTPException, Request, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload, selectinload
 
+from app.utils.paginator import Paginator
+
 
 class SubjectService:
 
@@ -81,10 +83,12 @@ class SubjectService:
     @staticmethod  # get all subjects
     async def get_subjects(
         db: AsyncSession,
+        page: int,
+        size: int,
         subject_credits: float | None = None,
         semester_id: int | None = None,
         search: str | None = None,
-        order_by_filter: str | None = None
+        order_by_filter: str | None = None,
     ):
         query = select(Subject).options(selectinload(
             Subject.semester))
@@ -115,10 +119,11 @@ class SubjectService:
                 )
             )
 
-        result = await db.execute(query)
-        subjects = result.scalars().unique().all()
+        # result = await db.execute(query)
+        # subjects = result.scalars().unique().all()
 
-        return subjects
+        # return subjects
+        return await Paginator.paginate(db, query, page, size)
 
     @staticmethod  # update single subject
     async def update_subject_by_admin(

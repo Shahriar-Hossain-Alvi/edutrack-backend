@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.authenticated_user import get_current_user
 from app.core.exceptions import DomainIntegrityError
 from app.permissions import ensure_roles
+from app.schemas.pagination_schema import PaginatedResponse
 from app.services.subject_service import SubjectService
 from app.db.db import get_db_session
 from app.schemas.subject_schema import SubjectCreateSchema, SubjectUpdateSchema, SubjectWithSemesterResponseSchema
@@ -51,18 +52,20 @@ async def create_new_subject(
 
 
 # get all subjects
-@router.get("/", response_model=list[SubjectWithSemesterResponseSchema])
+@router.get("/", response_model=PaginatedResponse[SubjectWithSemesterResponseSchema])
 async def get_all_subjects(
         current_user: UserOutSchema = Depends(get_current_user),
         db: AsyncSession = Depends(get_db_session),
         subject_credits: float | None = None,
         semester_id: int | None = None,
         search: str | None = None,
-        order_by_filter: str | None = None
+        order_by_filter: str | None = None,
+        page: int = 1,
+        size: int = 10
 ):
 
     try:
-        return await SubjectService.get_subjects(db, subject_credits, semester_id, search, order_by_filter)
+        return await SubjectService.get_subjects(db, page, size, subject_credits, semester_id, search, order_by_filter)
     except HTTPException:
         raise
     except Exception as e:
