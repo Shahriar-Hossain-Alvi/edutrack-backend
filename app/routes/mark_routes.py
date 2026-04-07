@@ -1,6 +1,7 @@
 from loguru import logger
 from app.core.exceptions import DomainIntegrityError
 from app.schemas.marks_schema import BatchResultPublishSchema, GenerateSingleStudentsSingleSemesterResultResponseSchema, MarksCreateSchema, MarksUpdateSchema, SemesterWiseAllSubjectsMarksWithPopulatedDataResponseSchema, SemesterWiseResultResponseSchema
+from app.schemas.pagination_schema import PaginatedResponse
 from app.schemas.user_schema import UserOutSchema
 from app.services.marks_service import MarksService
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -52,7 +53,7 @@ async def create_new_mark(
 # get result department wise with semester and session
 @router.get(
     "/get_all_marks_with_filters",
-    response_model=list[SemesterWiseAllSubjectsMarksWithPopulatedDataResponseSchema]
+    response_model=PaginatedResponse[SemesterWiseAllSubjectsMarksWithPopulatedDataResponseSchema]
 )
 async def get_all_filtered_marks(
     request: Request,
@@ -60,12 +61,14 @@ async def get_all_filtered_marks(
     department_id: int | None = None,
     session: str | None = None,
     result_status: str | None = None,
+    page: int = 1,
+    size: int = 10,
     authorized_user: UserOutSchema = Depends(
         ensure_roles(["super_admin", "admin", "teacher"])),
     db: AsyncSession = Depends(get_db_session),
 ):
     try:
-        return await MarksService.get_all_marks_with_filters(db, authorized_user, semester_id, department_id, session, result_status)
+        return await MarksService.get_all_marks_with_filters(db, page, size, authorized_user, semester_id, department_id, session, result_status)
     except HTTPException:
         raise
     except Exception as e:
