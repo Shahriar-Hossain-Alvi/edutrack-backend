@@ -16,6 +16,7 @@ from fastapi import HTTPException, Request, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from app.utils.mask_sensitive_data import sanitize_payload
+from app.utils.paginator import Paginator
 
 
 class UserService:
@@ -94,7 +95,9 @@ class UserService:
         db: AsyncSession,
         user_role: str | None = None,
         department_search: str | None = None,
-        order_by_filter: str | None = None
+        order_by_filter: str | None = None,
+        page: int = 1,
+        size: int = 10
     ):
         query = (
             select(User)
@@ -130,7 +133,8 @@ class UserService:
         result = await db.execute(query)
         all_users = result.scalars().unique().all()  # unique
 
-        return all_users
+        # return all_users
+        return await Paginator.paginate(db, query, page, size)
 
     @staticmethod
     async def get_user(db: AsyncSession, user_id: int):

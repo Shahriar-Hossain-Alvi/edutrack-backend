@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core import get_current_user
 from app.core.exceptions import DomainIntegrityError
 from app.permissions import ensure_roles
+from app.schemas.pagination_schema import PaginatedResponse
 from app.services.user_service import UserService
 from app.db.db import get_db_session
 from app.schemas.user_schema import AllUsersWithDetailsResponseSchema, UserCreateSchema, UserOutSchema, UserPasswordUpdateSchema, UserUpdateSchemaByAdmin
@@ -57,17 +58,21 @@ async def get_logged_in_user(
 
 
 # get all user: used in AllUser page. Show all users with populated data
-@router.get("/", response_model=list[AllUsersWithDetailsResponseSchema])
+@router.get("/",
+            response_model=PaginatedResponse[AllUsersWithDetailsResponseSchema]
+            )
 async def get_all_users(
     user_role: str | None = None,
     department_search: str | None = None,
     order_by_filter: str | None = None,
+    page: int = 1,
+    size: int = 10,
     db: AsyncSession = Depends(get_db_session),
     authorized_user: UserOutSchema = Depends(
         ensure_roles(["super_admin", "admin"]))
 ):
     try:
-        users = await UserService.get_users(db, user_role, department_search, order_by_filter)
+        users = await UserService.get_users(db, user_role, department_search, order_by_filter, page, size)
         return users
     except HTTPException:
         raise
