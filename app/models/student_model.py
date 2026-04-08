@@ -2,6 +2,7 @@ from app.db.base import Base
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from sqlalchemy import Date, Integer, String, ForeignKey
 from datetime import date
+from app.models.mark_model import ResultStatus
 from app.models.timestamp import TimestampMixin
 from sqlalchemy.ext.hybrid import hybrid_property
 
@@ -69,17 +70,17 @@ class Student(Base, TimestampMixin):
     )
 
     # hybrid property to calculate cgpa
-    # @hybrid_property
-    # def current_cgpa(self):
-    #     total_credits = 0
-    #     total_points = 0
+    @hybrid_property
+    def current_cgpa(self):
+        total_credits = 0
+        total_points = 0
 
-    #     for mark in self.marks:
-    #         if mark.result_status == "published":
-    #             total_credits += mark.subject.credits
-    #             total_points += mark.GPA * mark.subject.credits
+        for mark in self.marks:
+            if mark.result_status == ResultStatus.PUBLISHED:
+                total_credits += mark.subject.credits
+                total_points += mark.GPA * mark.subject.credits
 
-    #     if total_credits == 0:
-    #         return 0.0
+        if total_credits == 0:
+            return 0.0
 
-    #     return round(total_points / total_credits, 2)
+        return round(total_points / total_credits, 2)

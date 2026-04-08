@@ -180,21 +180,21 @@ class StudentService:
         stmt = select(Student).where(Student.user_id == user_id).options(
             joinedload(Student.user),  # Eager load user
             joinedload(Student.department),
-            # joinedload(Student.semester),
-            # joinedload(Student.marks).joinedload(Mark.subject)
+            joinedload(Student.semester),
+            joinedload(Student.marks).joinedload(Mark.subject)
         )
 
-        student = await db.scalar(stmt)
+        result = await db.execute(stmt)
+        student = result.unique().scalar_one_or_none()
 
         if not student:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
 
-        # cgpa = student.current_cgpa
-
-        # logger.success(f"students current cgpa: {cgpa}")
-
-        return student
+        return {
+            "student": student,
+            "CGPA": student.current_cgpa
+        }
 
     @staticmethod  # update student by admin
     async def update_student_by_admin(

@@ -74,6 +74,11 @@ class StudentProfileResponseSchemaNested(StudentBaseSchema):
     model_config = ConfigDict(from_attributes=True)
 
 
+class StudentProfileResponseSchemaWithCGPA(BaseModel):
+    student: StudentProfileResponseSchemaNested
+    CGPA: float
+    model_config = ConfigDict(from_attributes=True)
+
 
 # used in get_all_students_with_minimal_data for mark input
 class StudentResponseSchemaForMarkInputSearch(BaseModel):

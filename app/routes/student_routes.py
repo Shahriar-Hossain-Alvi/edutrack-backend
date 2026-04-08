@@ -5,7 +5,7 @@ from app.core.exceptions import DomainIntegrityError
 from app.services.student_service import StudentService
 from app.db.db import get_db_session
 from app.permissions import ensure_roles
-from app.schemas.student_schema import StudentCreateSchema, StudentProfileResponseSchemaNested, StudentUpdateByAdminSchema, StudentResponseSchemaForMarkInputSearch
+from app.schemas.student_schema import StudentCreateSchema, StudentProfileResponseSchemaNested, StudentProfileResponseSchemaWithCGPA, StudentUpdateByAdminSchema, StudentResponseSchemaForMarkInputSearch
 from app.schemas.user_schema import UserOutSchema
 
 router = APIRouter(
@@ -106,9 +106,7 @@ async def get_all_students_with_minimal_data(
 
 
 # get single student(profile page data)
-@router.get("/{user_id}",
-            # response_model=StudentProfileResponseSchemaNested
-            )
+@router.get("/{user_id}", response_model=StudentProfileResponseSchemaWithCGPA)
 async def get_single_student(
     user_id: int,
     db: AsyncSession = Depends(get_db_session),
