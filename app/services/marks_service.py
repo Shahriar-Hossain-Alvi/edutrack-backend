@@ -704,6 +704,21 @@ class MarksService:
                 pdf.cell(w_gpa, 10, text=str(mark.GPA), border=1,
                          new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
+            # GPA calculation
+            total_weighted_points = sum(
+                mark.GPA * mark.subject.credits for mark in result)
+            total_credits = sum(mark.subject.credits for mark in result)
+            semester_gpa = round(total_weighted_points /
+                                 total_credits, 2) if total_credits > 0 else 0.0
+
+            # show the gpa in pdf
+            pdf.ln(5)
+            pdf.set_font("Arial", "B", size=11)
+            pdf.cell(w_sub + w_code + w_credits +
+                     (w_marks * 4), 10, text="GPA: ", align="R")
+            pdf.cell(w_gpa, 10, text=str(semester_gpa), border=1,
+                     align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
             # convert the pdf into base64
             pdf_output = pdf.output()
 
@@ -720,6 +735,7 @@ class MarksService:
                 "student_info": student_info,
                 "semester_info": semester_info,
                 "department_info": department_info,
+                "semester_gpa": semester_gpa,
                 "result": result,
                 "pdf_base64": pdf_base64
             }
@@ -903,6 +919,8 @@ class MarksService:
 
         result = await db.execute(statement)
         marks = result.unique().scalars().all()  # remove duplicates using unique()
+
+        # marks.sort(key=lambda mark: mark.updated_at, reverse=True)
 
         # create a dictionary where the key will be department name, semester name and session
         grouped = defaultdict(list)

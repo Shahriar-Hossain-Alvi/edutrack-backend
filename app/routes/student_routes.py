@@ -106,7 +106,9 @@ async def get_all_students_with_minimal_data(
 
 
 # get single student(profile page data)
-@router.get("/{user_id}", response_model=StudentProfileResponseSchemaNested)
+@router.get("/{user_id}",
+            # response_model=StudentProfileResponseSchemaNested
+            )
 async def get_single_student(
     user_id: int,
     db: AsyncSession = Depends(get_db_session),

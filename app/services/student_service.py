@@ -7,6 +7,7 @@ from app.core.exceptions import DomainIntegrityError
 from app.core.integrity_error_parser import parse_integrity_error
 from app.core.pw_hash import hash_password
 from app.models.department_model import Department
+from app.models.mark_model import Mark
 from app.models.semester_model import Semester
 from app.models.student_model import Student
 from app.models.user_model import User
@@ -179,7 +180,8 @@ class StudentService:
         stmt = select(Student).where(Student.user_id == user_id).options(
             joinedload(Student.user),  # Eager load user
             joinedload(Student.department),
-            joinedload(Student.semester)
+            # joinedload(Student.semester),
+            # joinedload(Student.marks).joinedload(Mark.subject)
         )
 
         student = await db.scalar(stmt)
@@ -187,6 +189,10 @@ class StudentService:
         if not student:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+
+        # cgpa = student.current_cgpa
+
+        # logger.success(f"students current cgpa: {cgpa}")
 
         return student
 

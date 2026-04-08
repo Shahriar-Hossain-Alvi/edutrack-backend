@@ -83,7 +83,7 @@ async def get_all_filtered_marks(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-# get all results with semester+department+session after publishing all the marks
+# get all subjects results with semester+department+session after publishing all the marks
 @router.get(
     "/results",
     response_model=GenerateSingleStudentsSingleSemesterResultResponseSchema

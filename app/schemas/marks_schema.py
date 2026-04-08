@@ -107,6 +107,7 @@ class SemesterWiseAllSubjectsMarksWithPopulatedDataResponseSchema(BaseModel):
     semester_id: int
     semester_name: str
     session: str
+    # semester_gpa: float
     marks: list[PopulatedMarksResponseSchema]
     model_config = ConfigDict(from_attributes=True)
 
@@ -136,6 +137,7 @@ class GenerateSingleStudentsSingleSemesterResultResponseSchema(BaseModel):
     student_info: PopulatedMarksStudentResponseSchema | None = None
     semester_info: PopulatedMarksStudentsCurrentSemesterResponseSchema | None = None
     department_info: PopulatedMarksStudentsDepartmentResponseSchema | None = None
+    semester_gpa: float
     result: list[MarkDetailsSchema] | None = None
     message: str | None = None
     pdf_base64: str | None = None
