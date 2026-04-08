@@ -35,12 +35,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # request comes here and follows the middlewares top to bottom (req -> middleware -> router)
 # 1 when request IN
 app.add_middleware(TokenInjectionFromCookieToHeaderMiddleware)
 app.add_middleware(AuditMiddleware)  # 2 when request IN
 # response comes here and follows the middlewares bottom to top (router -> middleware -> res)
+
+
+# add this to wake up the server
+@app.get("/")
+@app.head("/")
+async def root():
+    return {"status": "awake"}
 
 # add the routes
 app.include_router(heath_check.router, prefix="/api")
