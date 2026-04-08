@@ -38,7 +38,8 @@ class AuditMiddleware(BaseHTTPMiddleware):
 
         # skip head method with "/" path
         if (
-                method == "HEAD" or request.url.path == "/"):
+            method == "HEAD" or request.url.path == "/" or path == "/favicon.ico"
+        ):
             return response
 
         if status >= 500:
