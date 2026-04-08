@@ -36,6 +36,11 @@ class AuditMiddleware(BaseHTTPMiddleware):
         ):
             return response
 
+        # skip head method with "/" path
+        if (
+                method == "HEAD" or request.url.path == "/"):
+            return response
+
         if status >= 500:
             level = LogLevel.CRITICAL.value
         else:
