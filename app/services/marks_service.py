@@ -704,6 +704,21 @@ class MarksService:
                 pdf.cell(w_gpa, 10, text=str(mark.GPA), border=1,
                          new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
+            # GPA calculation
+            total_weighted_points = sum(
+                mark.GPA * mark.subject.credits for mark in result)
+            total_credits = sum(mark.subject.credits for mark in result)
+            semester_gpa = round(total_weighted_points /
+                                 total_credits, 2) if total_credits > 0 else 0.0
+
+            # show the gpa in pdf
+            pdf.ln(5)
+            pdf.set_font("Arial", "B", size=11)
+            pdf.cell(w_sub + w_code + w_credits +
+                     (w_marks * 4), 10, text="GPA: ", align="R")
+            pdf.cell(w_gpa, 10, text=str(semester_gpa), border=1,
+                     align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
             # convert the pdf into base64
             pdf_output = pdf.output()
 
@@ -720,6 +735,7 @@ class MarksService:
                 "student_info": student_info,
                 "semester_info": semester_info,
                 "department_info": department_info,
+                "semester_gpa": semester_gpa,
                 "result": result,
                 "pdf_base64": pdf_base64
             }
@@ -902,25 +918,44 @@ class MarksService:
         ).order_by(Mark.updated_at.desc())
 
         result = await db.execute(statement)
-        marks = result.unique().scalars().all()  # remove duplicates using unique()
+        marks = sorted(result.unique().scalars().all(
+            # remove duplicates using unique()
+            # sort by semester to easily calculate gpa
+        ), key=lambda x: x.semester.semester_number)
+
+        # variable setup
+        cumulative_points = 0.0
+        cumulative_credits = 0.0
+        final_result = []
 
         # create a dictionary where the key will be department name, semester name and session
-        grouped = defaultdict(list)
-
-        for m in marks:
-            # extract the category key from every mark using a tuple
-            category_key = (
+        # grouped = defaultdict(list)
+        semesters = sorted(
+            list(set((
                 m.semester_id,
                 m.semester.semester_name,
-                m.student.session
-            )
-            # add the mark to the corresponding category
-            grouped[category_key].append(m)
+                m.student.session,
+                m.semester.semester_number
+            ) for m in marks)), key=lambda x: x[3])
 
-        # convert the data in a list of dictionaries
-        result = []
-        for key, items in grouped.items():
-            sem_id, sem_name, session_name = key
+        for sem_id, sem_name, session_name, sem_num in semesters:
+            # filter that semesters marks
+            current_semester_marks = [
+                m for m in marks if m.semester_id == sem_id]
+
+            # semesters GPA calculation
+            sem_points = sum(
+                m.GPA * m.subject.credits for m in current_semester_marks)
+            sem_credits = sum(
+                m.subject.credits for m in current_semester_marks)
+            sem_gpa = round(sem_points / sem_credits,
+                            2) if sem_credits > 0 else 0.0
+
+            # CGPA calculation
+            cumulative_points += sem_points
+            cumulative_credits += sem_credits
+            current_cgpa = round(
+                cumulative_points / cumulative_credits, 2) if cumulative_credits > 0 else 0.0
 
             # get total offered subjects for that particular department and semester
             total_offered_subjects_stmt = select(func.count(SubjectOfferings.id)).join(Subject, SubjectOfferings.subject_id == Subject.id).where(
@@ -931,17 +966,53 @@ class MarksService:
             )
 
             total_offered = (await db.execute(total_offered_subjects_stmt)).scalar() or 0
-            total_fetched_marks = len(items)
+            total_fetched_marks = len(current_semester_marks)
 
             if total_offered > 0 and total_fetched_marks == total_offered:
-                result.append({
+                final_result.append({
                     "semester_id": sem_id,
                     "semester_name": sem_name,
                     "session": session_name,
-                    "marks": items
+                    "semester_gpa": sem_gpa,
+                    "cgpa_up_to_this_semester": current_cgpa,
+                    "marks": current_semester_marks
                 })
 
-        return result
+        # for m in marks:
+        #     # extract the category key from every mark using a tuple
+        #     category_key = (
+        #         m.semester_id,
+        #         m.semester.semester_name,
+        #         m.student.session
+        #     )
+        #     add the mark to the corresponding category
+        #     grouped[category_key].append(m)
+
+        # convert the data in a list of dictionaries
+        # result = []
+        # for key, items in grouped.items():
+        #     sem_id, sem_name, session_name = key
+
+        #     # get total offered subjects for that particular department and semester
+        #     total_offered_subjects_stmt = select(func.count(SubjectOfferings.id)).join(Subject, SubjectOfferings.subject_id == Subject.id).where(
+        #         and_(
+        #             SubjectOfferings.department_id == student.department_id,
+        #             Subject.semester_id == sem_id
+        #         )
+        #     )
+
+        #     total_offered = (await db.execute(total_offered_subjects_stmt)).scalar() or 0
+        #     total_fetched_marks = len(items)
+
+        #     if total_offered > 0 and total_fetched_marks == total_offered:
+        #         result.append({
+        #             "semester_id": sem_id,
+        #             "semester_name": sem_name,
+        #             "session": session_name,
+        #             "marks": items
+        #         })
+
+        return final_result
 
     @staticmethod  # get all students mark for a particular subject
     async def get_all_mark_for_a_subject(db: AsyncSession, subject_id: int):
