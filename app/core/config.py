@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     MAIL_USERNAME: str
     MAIL_APP_PASSWORD: SecretStr
     APP_ENV: str
+    DUMMY_TEACHER_PASSWORD: str
+    DUMMY_STUDENT_PASSWORD: str
 
     # This reads the string and splits it into a list
     CORS_ORIGINS: Any = []  # Default fallback

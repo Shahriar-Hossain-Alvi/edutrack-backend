@@ -182,7 +182,12 @@ async def dummy_user_login(
             status_code=status.HTTP_404_NOT_FOUND, detail="Invalid credentials. Please check your credentials.")
 
     try:
-        dummy_password = password+"dummyUser"
+        dummy_password = ""
+        if user.role.value == "teacher" and password == "123456":
+            dummy_password = settings.DUMMY_TEACHER_PASSWORD
+        elif user.role.value == "student" and password == "123456":
+            dummy_password = settings.DUMMY_STUDENT_PASSWORD
+
         # verify password
         is_valid = verify_password(dummy_password, user.hashed_password)
 
