@@ -555,7 +555,8 @@ class MarksService:
                 return {
                     "message": "Student not found",
                     "total_subjects": 0,
-                    "published_count": 0
+                    "published_count": 0,
+                    "semester_gpa": 0.0
                 }
 
             # check if the student is from selected department
@@ -563,7 +564,8 @@ class MarksService:
                 return {
                     "message": "This student doesn't belong to this department",
                     "total_subjects": 0,
-                    "published_count": 0
+                    "published_count": 0,
+                    "semester_gpa": 0.0
                 }
 
             # get total offered subject for a semester in a department
@@ -580,7 +582,8 @@ class MarksService:
                 return {
                     "published_count": 0,
                     "total_subjects": total_offered,
-                    "message": "No subjects offered in this semester yet"
+                    "message": "No subjects offered in this semester yet",
+                    "semester_gpa": 0.0
                 }
 
             # get the published marks for the student
@@ -605,6 +608,7 @@ class MarksService:
                     "published_count": len(result),
                     "total_subjects": total_offered,
                     "message": "Result is under processing. Please try again later",
+                    "semester_gpa": 0.0
                 }
 
             first_record = result[0]
