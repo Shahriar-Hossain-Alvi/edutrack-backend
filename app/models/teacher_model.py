@@ -11,7 +11,7 @@ class Teacher(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
 
     name: Mapped[str] = mapped_column(
-        String(100), nullable=False)  # add name to index
+        String(100), nullable=False, index=True)
 
     # Relationship with Department
     department_id: Mapped[int] = mapped_column(Integer, ForeignKey(

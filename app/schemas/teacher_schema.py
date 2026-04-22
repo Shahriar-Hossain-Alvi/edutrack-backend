@@ -72,22 +72,6 @@ class TeachersPublicDataResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# currently not needed
-# class TeacherUpdateSchema(BaseModel):
-#     name: str | None = None
-#     present_address: str | None = None
-#     permanent_address: str | None = None
-#     date_of_birth: date | None = None
-#     photo_url: str | None = None
-
-
-# TODO: use this in get_all_faculty route in future if needed
-# class TeachersDepartmentWiseGroupResponse(BaseModel):
-#     department_name: str
-#     teachers: list[TeachersPublicDataResponse]
-#     model_config = ConfigDict(from_attributes=True)
-
-
 # used in update_teacher_by_admin router function
 # 1. dynamic partial base beacuse directly using create_partial_model is giving warning in service functions parameter
 _PartialTeacher = create_partial_model(TeacherBaseSchema)

@@ -31,22 +31,6 @@ class StudentBaseSchema(BaseModel):
 class StudentCreateSchema(StudentBaseSchema):
     user: UserCreateSchema
 
-# This is unused. Might not needed
-# class StudentOutSchema(StudentBaseSchema):
-#     id: int
-#     created_at: datetime
-#     updated_at: datetime
-#     model_config = ConfigDict(from_attributes=True)
-
-
-# TODO: create studet profile to update users these data by self
-# class StudentUpdateSchema(BaseModel):
-#     name: str | None = None
-#     present_address: str | None = None
-#     permanent_address: str | None = None
-#     date_of_birth: date | None = None
-#     photo_url: str | None = None
-
 
 # used in get_all_students_with_minimal_data for mark input
 class DepartmentDataForMinimalStudent(BaseModel):

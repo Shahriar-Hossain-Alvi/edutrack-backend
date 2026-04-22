@@ -235,8 +235,7 @@ class UserService:
                 error_message=readable_error, raw_error=raw_error_message
             )
 
-    # TODO: create profile page to update the default password
-    @staticmethod
+    @staticmethod  # used in profile page to update the default password
     async def update_user_self(
         user_id: int,
         password_update_data: UserPasswordUpdateSchema,

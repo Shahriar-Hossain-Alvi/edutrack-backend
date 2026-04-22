@@ -19,7 +19,7 @@ class UserCreateSchema(UserBaseSchema):
 
 
 # used in update_single_user_by_admin router function
-# TODO: create user profile to update these user data by self
+# used in user profile to update these user data by self
 class UserUpdateSchemaByAdmin(BaseModel):
     email: EmailStr | None = None
     username: EmailStr | None = None
@@ -27,7 +27,7 @@ class UserUpdateSchemaByAdmin(BaseModel):
     mobile_number: str | None = None
 
 
-# TODO: create user profile to update users default password by self
+# used in user profile to update users default password by self
 class UserPasswordUpdateSchema(BaseModel):
     username: str
     current_password: str
