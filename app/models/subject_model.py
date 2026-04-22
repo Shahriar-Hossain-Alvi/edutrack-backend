@@ -9,10 +9,11 @@ class Subject(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
 
-    subject_title: Mapped[str] = mapped_column(String(100), nullable=False)
+    subject_title: Mapped[str] = mapped_column(
+        String(100), nullable=False)  # add index
 
     subject_code: Mapped[str] = mapped_column(
-        String(20), nullable=False, unique=True, index=True)
+        String(20), nullable=False, unique=True, index=True)  # add index
 
     credits: Mapped[Float] = mapped_column(Float, nullable=False)
 
