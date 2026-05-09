@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import date, datetime
 
 from app.models.audit_log_model import LogLevel
@@ -12,9 +12,9 @@ class AllTablesDataCount(BaseModel):
     departments: int
     semesters: int
     subjects: int
-    assigned_courses: int
+    assigned_courses: int = Field(..., alias="assigned courses")
     marks: int
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class PieChartBaseSchema(BaseModel):
