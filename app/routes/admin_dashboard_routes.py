@@ -51,7 +51,7 @@ async def get_chartsData(
 
 
 # Audit Log Monitoring
-@router.get("/auditLogs", response_model=list[AuditLogsResponseSchema])
+@router.get("/recentAuditLogs", response_model=list[AuditLogsResponseSchema])
 async def get_recent_audit_logs(
     request: Request,
     db: AsyncSession = Depends(get_db_session),
@@ -68,6 +68,4 @@ async def get_recent_audit_logs(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
 
-# Showing Recent Activity: "Recent Activity" -> last 10 actions
 # Filter by Level: শুধুমাত্র CRITICAL বা ERROR লেভেলের লগগুলো আলাদা করে দেখানোর জন্য একটি টগল বা বাটন।
-# Database Load: আপনার অডিট টেবিল কত দ্রুত বড় হচ্ছে বা মোট কতগুলো এন্ট্রি আছে তার একটি স্ট্যাটাস।
