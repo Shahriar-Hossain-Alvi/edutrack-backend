@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 
 
-class AdminDashboardBaseSchema(BaseModel):
+class AllTablesDataCount(BaseModel):
     users: int
     admins: int
     teachers: int
@@ -11,10 +11,16 @@ class AdminDashboardBaseSchema(BaseModel):
     subjects: int
     assigned_courses: int
     marks: int
-    audit_logs: int
+    model_config = ConfigDict(from_attributes=True)
 
 
-class AdminDashboardResponseSchema(AdminDashboardBaseSchema):
-    id: int
+class PieChartBaseSchema(BaseModel):
+    labels: list
+    values: list
+
+
+class PieChartResponseSchema(BaseModel):
+    student_pie_chart_data: PieChartBaseSchema
+    teacher_pie_chart_data: PieChartBaseSchema
 
     model_config = ConfigDict(from_attributes=True)
