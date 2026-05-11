@@ -22,12 +22,13 @@ router = APIRouter(
 async def get_audit_logs(
     page: int = 1,
     size: int = 10,
+    filter_by_level: str | None = None,
     db: AsyncSession = Depends(get_db_session),
     authorized_user: UserOutSchema = Depends(
         ensure_roles(["super_admin", "admin"])),
 ):
     try:
-        return await AuditLogsService.get_all_audit_logs(db, page, size)
+        return await AuditLogsService.get_all_audit_logs(db, page, size, filter_by_level)
     except HTTPException:
         raise
     except Exception as e:
