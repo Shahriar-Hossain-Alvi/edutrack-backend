@@ -1,15 +1,8 @@
-from typing import Any
-from loguru import logger
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.exceptions import DomainIntegrityError
-from app.core.integrity_error_parser import parse_integrity_error
 from app.models import User
 from app.models import Department, Mark, Semester, Student, Subject, SubjectOfferings, Teacher
-from sqlalchemy.exc import IntegrityError
-from fastapi import Request
 import re
-
 from app.models.audit_log_model import AuditLog
 
 
@@ -17,8 +10,7 @@ class AdminDashboardService:
 
     @staticmethod
     async def get_all_table_data_count(
-        db: AsyncSession,
-        request: Request | None = None
+        db: AsyncSession
     ):
         # 1. Build a single query that wraps multiple subqueries
         query = select(
@@ -82,7 +74,6 @@ class AdminDashboardService:
     @staticmethod
     async def get_chart_data(
         db: AsyncSession,
-        request: Request | None = None
     ):
         # Get department names with count of students
         query = select(
@@ -120,8 +111,7 @@ class AdminDashboardService:
     # get audit log
     @staticmethod
     async def get_recent_audit_logs(
-        db: AsyncSession,
-        request: Request | None = None
+        db: AsyncSession
     ):
         # Get department names with count of students
         query = select(AuditLog).order_by(
