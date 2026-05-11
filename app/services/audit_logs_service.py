@@ -13,8 +13,12 @@ class AuditLogsService:
         db: AsyncSession,
         page: int,
         size: int,
+        filter_by_level: str | None = None
     ):
         query = select(AuditLog).order_by(
             AuditLog.created_at.desc())
+
+        if filter_by_level is not None:
+            query = query.where(AuditLog.level == filter_by_level)
 
         return await Paginator.paginate(db, query, page, size)

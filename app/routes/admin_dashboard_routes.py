@@ -62,6 +62,3 @@ async def get_recent_audit_logs(
         logger.critical(f"Unexpected Error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
-
-
-# Filter by Level: শুধুমাত্র CRITICAL বা ERROR লেভেলের লগগুলো আলাদা করে দেখানোর জন্য একটি টগল বা বাটন।
